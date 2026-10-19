@@ -1,5 +1,5 @@
 import Peer, { type DataConnection, type MediaConnection } from 'peerjs'
-import { ENDPOINT, randomCode, type HostMessage } from '../core/protocol'
+import { ENDPOINT, randomCode, STREAM_FPS, type GuestMessage, type HostMessage, type InputKind } from '../core/protocol'
 
 const ICE = {
   iceServers: [
@@ -11,6 +11,7 @@ const ICE = {
 export interface HostPeer {
   id: string
   port: number
+  source?: InputKind
 }
 
 export interface HostEvents {
@@ -28,6 +29,7 @@ export class HostNet {
   private readonly conns = new Map<string, DataConnection>()
   private readonly calls = new Map<string, MediaConnection>()
   private readonly ports = new Map<string, number>()
+  private readonly sources = new Map<string, InputKind>()
   private stream: MediaStream | null = null
   private streamSignature = ''
   private callSignatures = new Map<string, string>()
@@ -86,6 +88,15 @@ export class HostNet {
   private receive(id: string, data: unknown) {
     if (data instanceof ArrayBuffer) return this.events.onInput(id, new DataView(data).getUint16(0, true))
     if (data instanceof Uint8Array) return this.events.onInput(id, (data[0] ?? 0) | ((data[1] ?? 0) << 8))
+    if (typeof data !== 'string') return
+    try {
+      const message = JSON.parse(data) as GuestMessage
+      if (message.t !== 'source') return
+      this.sources.set(id, message.kind)
+      this.roster()
+    } catch {
+      /* ignore malformed control messages */
+    }
   }
 
   private drop(id: string) {
@@ -95,6 +106,7 @@ export class HostNet {
     this.calls.delete(id)
     this.callSignatures.delete(id)
     this.ports.delete(id)
+    this.sources.delete(id)
     this.events.onLeave(id)
     this.roster()
   }
@@ -104,6 +116,18 @@ export class HostNet {
     this.calls.get(id)?.close()
     const call = this.peer.call(id, this.stream)
     if (!call) return
+    // Chrome's default encoder policy trades frame rate for sharpness; a game wants the frames.
+    for (const sender of call.peerConnection.getSenders()) {
+      if (sender.track?.kind !== 'video') continue
+      try {
+        const params = sender.getParameters()
+        params.degradationPreference = 'maintain-framerate'
+        params.encodings = params.encodings.map((encoding) => ({ ...encoding, maxFramerate: STREAM_FPS }))
+        sender.setParameters(params).catch((error) => log(`Encoder tuning skipped: ${String(error)}`))
+      } catch {
+        /* tuning is best effort; never stop a call over it */
+      }
+    }
     this.callSignatures.set(id, this.streamSignature)
     this.calls.set(id, call)
     call.on('close', () => {
@@ -135,7 +159,9 @@ export class HostNet {
   }
 
   roster() {
-    this.events.onRoster([...this.conns.keys()].map((id) => ({ id, port: this.ports.get(id) ?? -1 })))
+    this.events.onRoster(
+      [...this.conns.keys()].map((id) => ({ id, port: this.ports.get(id) ?? -1, source: this.sources.get(id) })),
+    )
   }
 
   destroy() {

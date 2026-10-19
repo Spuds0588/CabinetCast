@@ -28,7 +28,7 @@ export function createKeyboard(port = 0) {
   }
 }
 
-/** Standard Gamepad API mapping -> bitmask. */
+/** Standard Gamepad API mapping -> bitmask. Browsers normalize most pads to `standard`. */
 export function padMask(pad: Gamepad): number {
   const pressed = (index: number) => pad.buttons[index]?.pressed ?? false
   const axisX = pad.axes[0] ?? 0
@@ -49,5 +49,13 @@ export function padMask(pad: Gamepad): number {
   return mask
 }
 
-export const connectedPads = () =>
-  [...(navigator.getGamepads?.() ?? [])].filter((pad): pad is Gamepad => Boolean(pad)).map((pad) => pad.index)
+/** Connected pads, in browser order. */
+export const pads = () =>
+  [...(navigator.getGamepads?.() ?? [])].filter((pad): pad is Gamepad => Boolean(pad))
+
+/** Chrome's pad id ends in a vendor/product blob; keep just the device name. */
+export const padLabel = (pad: Gamepad) => pad.id.replace(/\s*\(.*$/, '') || `Gamepad ${pad.index + 1}`
+
+/** Fight sticks report as ordinary gamepads, so the id is the only hint for which icon to show. */
+export const padKind = (pad: Gamepad): 'arcade' | 'gamepad' =>
+  /arcade|fight ?stick|fightstick|hori|qanba|mayflash|tankstick/i.test(pad.id) ? 'arcade' : 'gamepad'

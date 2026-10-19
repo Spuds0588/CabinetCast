@@ -1,5 +1,5 @@
 import Peer, { type DataConnection, type PeerError } from 'peerjs'
-import { ENDPOINT, type HostMessage } from '../core/protocol'
+import { ENDPOINT, type GuestMessage, type HostMessage, type InputKind } from '../core/protocol'
 
 const ICE = {
   iceServers: [
@@ -22,6 +22,8 @@ export class GuestNet {
   private readonly peer: Peer
   private conn: DataConnection | null = null
   private destroyed = false
+  private source: InputKind | null = null
+  private sentSource: InputKind | null = null
 
   constructor(private readonly code: string, private readonly events: GuestEvents) {
     this.peer = new Peer({ config: ICE })
@@ -34,6 +36,7 @@ export class GuestNet {
       conn.on('open', () => {
         log(`Connected to room "${code}"`)
         this.events.onStatus('connected')
+        this.flushSource()
       })
       conn.on('close', () => !this.destroyed && this.events.onStatus('error', 'host closed the connection'))
       conn.on('data', (data) => this.receive(data))
@@ -68,6 +71,19 @@ export class GuestNet {
   /** Send a 2-byte input frame for this guest's assigned port. */
   sendInput(mask: number) {
     if (this.conn?.open) this.conn.send(new Uint8Array([mask & 0xff, (mask >> 8) & 0xff]))
+  }
+
+  /** Tell the host what this player is holding, so the roster can show the right icon. */
+  sendSource(kind: InputKind) {
+    this.source = kind
+    this.flushSource()
+  }
+
+  private flushSource() {
+    if (!this.conn?.open || !this.source || this.source === this.sentSource) return
+    this.sentSource = this.source
+    const message: GuestMessage = { t: 'source', kind: this.source }
+    this.conn.send(JSON.stringify(message))
   }
 
   destroy() {

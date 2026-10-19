@@ -34,6 +34,12 @@ export const BIT_TO_JOYPAD: [number, string][] = [
 /** RetroArch/libretro supports keyboard bindings for players 1-4 only (input_player[1-4]_*). */
 export const PORTS = 4
 
+/**
+ * Frames per second sent to guests. The core still runs at 60 and input is per-frame, but halving the
+ * captured frames halves encode and decode work and the bitrate the network has to carry.
+ */
+export const STREAM_FPS = 30
+
 const pad = (up: string, down: string, left: string, right: string, a: string, b: string, x: string, y: string, l: string, r: string, select: string, start: string) =>
   ({ up, down, left, right, a, b, x, y, l, r, select, start })
 
@@ -96,3 +102,8 @@ export const randomCode = (length = 5) =>
   Array.from({ length }, () => ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)]).join('')
 
 export type HostMessage = { t: 'slot'; port: number; spectator: boolean }
+
+/** What a player is holding. Guests report theirs; the host derives it for local sources. */
+export type InputKind = 'keyboard' | 'gamepad' | 'arcade' | 'touch'
+
+export type GuestMessage = { t: 'source'; kind: InputKind }

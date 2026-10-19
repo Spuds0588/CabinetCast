@@ -1,6 +1,6 @@
 import { Nostalgist } from 'nostalgist'
 import { audioTracks, installAudioTap } from './audioTap'
-import { BIT_TO_JOYPAD, NEUTRALIZED_HOTKEYS, PORT_KEY_CONFIG, PORTS } from './protocol'
+import { BIT_TO_JOYPAD, NEUTRALIZED_HOTKEYS, PORT_KEY_CONFIG, PORTS, STREAM_FPS } from './protocol'
 
 export interface ArcadeSession {
   romName: string
@@ -8,6 +8,9 @@ export interface ArcadeSession {
   getStream(): MediaStream
   /** Apply one port's 12-bit input mask, injecting only the bits that changed. */
   inject(port: number, mask: number): void
+  /** Snapshot the whole core, including SRAM and the current frame. */
+  saveState(): Promise<Blob>
+  loadState(state: Blob): Promise<void>
   exit(): void
 }
 
@@ -49,16 +52,25 @@ export async function launchArcade(file: File, bios?: Blob): Promise<ArcadeSessi
   element.blur()
   if (isDebug()) Object.assign(globalThis, { __cabinetCore: emulator })
 
-  const videoTrack = element.captureStream(60).getVideoTracks()[0]
+  const videoTrack = element.captureStream(STREAM_FPS).getVideoTracks()[0]
+  // Tell the encoder this is motion, not a document: keep the frames when it must trade something.
+  videoTrack.contentHint = 'motion'
   const getStream = () => new MediaStream([videoTrack, ...audioTracks()])
   const lastMasks = new Array<number>(PORTS).fill(0)
 
   const settings = videoTrack.getSettings()
-  log(`Running: ${file.name} (canvas ${settings.width}x${settings.height})`)
+  log(`Running: ${file.name} (canvas ${settings.width}x${settings.height}, capture ${settings.frameRate ?? STREAM_FPS} fps)`)
 
   return {
     romName: file.name,
     getStream,
+    async saveState() {
+      const { state } = await emulator.saveState()
+      return state
+    },
+    loadState(state) {
+      return emulator.loadState(state)
+    },
     inject(port, mask) {
       const previous = lastMasks[port] ?? 0
       if (previous === mask) return

@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { createKeyboard, padMask } from '../core/input'
+import { createKeyboard, padKind, padMask } from '../core/input'
+import type { InputKind } from '../core/protocol'
+import { useFullscreen, useViewShortcuts, useWidescreen } from '../core/view'
 import { GuestNet, type GuestStatus } from '../net/guest'
+import { InputIcon } from './InputIcon'
+import { TouchControls } from './TouchControls'
 
 const STATUS_TEXT: Record<GuestStatus, string> = {
   connecting: 'Opening secure channel…',
@@ -16,9 +20,16 @@ export function GuestView({ code }: { code: string }) {
   const [port, setPort] = useState(-1)
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [sound, setSound] = useState(false)
+  const [touch, setTouch] = useState(() => matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)
+  const [ownKind, setOwnKind] = useState<InputKind>('keyboard')
+  const [wide, toggleWide] = useWidescreen()
+  const fullscreen = useFullscreen(() => stage.current)
+  useViewShortcuts({ fullscreen: fullscreen.toggle, widescreen: toggleWide })
 
   const net = useRef<GuestNet | null>(null)
   const video = useRef<HTMLVideoElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
+  const touchMask = useRef(0)
 
   useEffect(() => {
     const guest = new GuestNet(code.toLowerCase(), {
@@ -51,7 +62,7 @@ export function GuestView({ code }: { code: string }) {
     let lastSent = 0
     const step = (now: number) => {
       const pad = [...(navigator.getGamepads?.() ?? [])].find((candidate): candidate is Gamepad => Boolean(candidate))
-      const mask = keys.mask() | (pad ? padMask(pad) : 0)
+      const mask = keys.mask() | (pad ? padMask(pad) : 0) | touchMask.current
       if (net.current && (mask !== lastMask || now - lastSent > 400)) {
         net.current.sendInput(mask)
         lastMask = mask
@@ -66,12 +77,36 @@ export function GuestView({ code }: { code: string }) {
     }
   }, [])
 
+  // Tell the host which controller to draw next to this player, and keep it current.
+  useEffect(() => {
+    const report = () => {
+      const pad = [...(navigator.getGamepads?.() ?? [])].find((candidate): candidate is Gamepad => Boolean(candidate))
+      const kind: InputKind = pad ? padKind(pad) : touch ? 'touch' : 'keyboard'
+      setOwnKind(kind)
+      net.current?.sendSource(kind)
+    }
+    report()
+    const timer = setInterval(report, 1500)
+    return () => clearInterval(timer)
+  }, [touch])
+
   const enableSound = () => {
     setSound(true)
     video.current?.play().catch(() => undefined)
   }
 
   const live = status === 'connected' && Boolean(stream)
+
+  // Never leave a held touch button latched when the overlay is hidden or the feed stops.
+  useEffect(() => {
+    if (!live) touchMask.current = 0
+  }, [live])
+
+  const toggleTouch = () =>
+    setTouch((on) => {
+      if (on) touchMask.current = 0
+      return !on
+    })
 
   return (
     <div className="app guest">
@@ -90,7 +125,7 @@ export function GuestView({ code }: { code: string }) {
         </div>
       </header>
 
-      <div className="stage">
+      <div ref={stage} className={wide ? 'stage wide' : 'stage'}>
         <video ref={video} autoPlay playsInline />
 
         {!stream && (
@@ -114,9 +149,28 @@ export function GuestView({ code }: { code: string }) {
         )}
       </div>
 
+      {live && touch && <TouchControls onChange={(mask) => (touchMask.current = mask)} />}
+
       <footer className="guestfoot">
-        <span className="tag">{port === -1 ? 'Spectator' : `Player ${port + 1}`}</span>
+        <span className="tag">
+          <InputIcon kind={ownKind} size={14} />
+          {port === -1 ? 'Spectator' : `Player ${port + 1}`}
+        </span>
         <span className="muted small">Arrows · Z X C V · A S buttons · Space coin · Enter start · any gamepad</span>
+        <button className="ghost mini" aria-pressed={wide} onClick={toggleWide} title="Stretch the 4:3 feed to 16:9 (Shift+W)">
+          Widescreen
+        </button>
+        <button
+          className="ghost mini"
+          aria-pressed={fullscreen.active}
+          onClick={fullscreen.toggle}
+          title="Fullscreen (Shift+F)"
+        >
+          Fullscreen
+        </button>
+        <button className="ghost mini" aria-pressed={touch} onClick={toggleTouch}>
+          {touch ? 'Touch controls ✓' : 'Touch controls'}
+        </button>
       </footer>
     </div>
   )

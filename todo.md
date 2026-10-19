@@ -4,9 +4,27 @@
 - [x] Vite + React + TypeScript + plain CSS (no Tailwind: zero extra deps), base `/CabinetCast/`
 - [x] FBNeo via Nostalgist, drag/drop `.zip`, launch timeout, real romset filename fix
 - [x] Canvas video + AudioContext tap → single `MediaStream`
-- [x] PeerJS host: room code, magic link, 4 ports, guest roster + latency, auto slot assignment
-- [x] PeerJS guest: join by link, autoplay video, "tap for sound", 2-byte input frames, RTT
-- [x] Slot manager with hot-swap dropdowns (keyboard / gamepad / guest / empty)
+- [x] PeerJS host: room code, magic link, 4 ports, guest roster, auto slot assignment
+- [x] PeerJS guest: join by link, autoplay video, "tap for sound", 2-byte input frames
+- [x] Slot manager: detected-inputs list (keyboard/gamepad/guest, in port order) with Remove, plus an
+      `+ Add player input` menu; the four `<select>` dropdowns are gone (2026-10-19)
+- [x] Invite QR: modal with 640px PNG, copy-image (link fallback) and download (2026-10-19)
+- [x] Touch controls for mobile guests: d-pad + A/B/C/D + Coin/Start, auto-on for coarse pointers
+      (2026-10-19)
+- [x] Gamepad API auto-detect: new pads take the lowest free port, disconnect frees it, labels trimmed
+      to the device name (2026-10-19)
+- [x] Top menu bar for invite/QR/widescreen/fullscreen/stop, with `Shift+F` and `Shift+W` shortcuts for both
+      host and guest (2026-10-19)
+- [x] Widescreen toggle: 16:9 display stretch of the core's 4:3 picture, persisted and synced across tabs;
+      document that FBNeo has no true widescreen render mode (2026-10-19)
+- [x] Input icons in slot rows, detected list and guest tag: keyboard, gamepad, arcade stick, phone/touch;
+      guests report their source over the data channel (2026-10-19)
+- [x] Thumb-sized touch controls: 168px d-pad / 70px buttons portrait, translucent landscape overlay with
+      safe-area insets, header/footer hidden (2026-10-19)
+- [x] Host-only save states: auto slot every 45s + on hide + on Stop, three manual slots, auto-resume on
+      re-drop, Saves panel with timestamps (2026-10-19)
+- [x] Stream capped at 30 fps (`captureStream(30)` + sender `maxFramerate`), cutting encode/decode and
+      bitrate while input stays per host frame (2026-10-19)
 - [x] Keyboard + Gamepad API input, per-port synthetic key injection
 - [x] Per-port local keyboard: each port's reader derives from `PORT_KEYS`, so a keyboard slot cannot
       replay another port's input (verified 2026-10-18)
@@ -17,17 +35,36 @@
       guest frame (attract → play); guest P2 coin×2+start changed 49.8% against a 1.1% idle control
 - [x] Pruned dead code (`bitNames`, `PeerSlot` + `Slots.peers`, `Slots.label`) and the RTT ping/stat
       machinery with its badge; no unused exports or CSS left in `src/`
+- [x] Test romsets on the dev build: `robby` and `gridlee` boot and play; soaks of 2 and 5 minutes kept the
+      guest feed live (0 dropped video events, 2–4% dropped frames, heap flat). `teetert` is not in FBNeo
+      and boots to the core's white "Romset is unknown" screen (2026-10-19)
+- [x] Ports 3 and 4 got real peers in a three-guest tab test, each holding only its own port's input; a
+      fourth guest joined as a spectator with video (2026-10-19)
+- [x] Three more romsets: `tmnt2` and `xmen6pu` boot at 60 fps and `tmnt2` accepted a P1 coin; `mslug6` is
+      Atomiswave and not in FBNeo, so it paints "Romset is unknown" (2026-10-19)
+- [x] Host fps meter with a warning below 30 fps; captured video marked `contentHint = 'motion'` and the
+      sender set to `maintain-framerate` so load costs sharpness, not frames (2026-10-19)
 
 ## Next
+- [ ] Prove multiplayer across real devices/networks (`npm run dev -- --host` for a LAN test or use the
+      live site); only same-browser tabs have been tested, and only STUN is configured
+- [ ] Detect a romset the core rejects: show "Romset is unknown" as an app error instead of reporting
+      `running` (`teetert.zip` and `mslug6.zip` are the reproductions)
 - [ ] Exercise the deployed site with a real ROM: the live page has never been given a file, only the
       identical dev build has
+- [ ] Test a physical gamepad (the Gamepad path was verified with a mocked `navigator.getGamepads`)
 - [ ] Hear the audio: a guest receives a live audio track, but no sample has ever been measured (analyser
       peak 0.0 under a gesture-less scripted drop, which is inconclusive)
-- [ ] Prove multiplayer across two machines/networks; only same-browser host+guest has been tested, and
-      only STUN is configured
-- [ ] Ports 3 and 4 have never been assigned a real peer
 - [ ] 8 player ports: needs an input path other than per-player keyboard binds (see agents.md)
-- [ ] Touch controls for mobile guests (d-pad + 4 buttons overlay)
+- [ ] Try the touch overlay on real iOS/Android hardware (pointer capture, audio unlock, safe-area insets)
+- [ ] Confirm the 30 fps cap end to end with a foreground host and a second machine; the preview browser
+      throttles the background host, so only the track settings and sender parameters were verified
+- [ ] Decide whether stream fps should be a host setting (30 vs 60) instead of a constant
+- [ ] Test save compatibility: rename/repack a ROM (different key), and load states after a core update
+- [ ] Prove native fullscreen in a real browser window: the preview browser blocks it, so entry/exit was
+      only verified against a stubbed Fullscreen API
+- [ ] Promote the first spectator when a port frees up, instead of leaving it empty until reload
+- [ ] Let guests pick their port from the join screen (host confirmation), instead of first-come
 - [ ] Mute / volume for the host, and a "fullscreen cabinet" toggle for guests
 - [ ] Reconnect a dropped guest into the same slot instead of freeing it immediately
 - [ ] Tauri v2 host wrapper (deferred until the web MVP is validated with real ROMs)
@@ -35,9 +72,18 @@
 ## Known limitations
 - 4 player ports maximum (RetroArch keyboard binds only exist for players 1-4).
 - "Stop game" reloads the page; hot ROM swap needs a fresh core instance.
-- Host tab must stay visible: input injection runs on `requestAnimationFrame`, which a hidden tab
-  throttles to about one frame a second.
+- An unsupported romset (e.g. `teetert.zip`, `mslug6.zip`) boots the core to its own white "Romset is
+  unknown" screen while the app still says `running`; there is no client-side romset validation.
+- Host tab must stay visible: input injection and canvas capture run on `requestAnimationFrame`, which a
+  background tab throttles to a few frames a second. The host now shows its fps and warns below 30, but
+  cannot override the browser.
 - Neo Geo sets need a `neogeo.zip` that matches the FBNeo build.
 - Only STUN is configured; symmetric NAT pairs need a TURN server.
+- Widescreen is a display stretch to 16:9, not extra rendered pixels: FBNeo has no widescreen mode, and the
+  captured stream stays 384x288 4:3.
+- Save states are keyed by ROM name + byte size in this browser only: renaming or repacking the same set
+  loses the saves, and they do not follow to another machine. Re-dropping a ROM always resumes the auto
+  save; clear it from the Saves panel to start fresh.
+- Stream is 30 fps for everyone; there is no per-guest quality setting.
 - Duplicate port ownership: `Slots.sources` and `HostNet.ports` both track which peer owns which port,
   so a remap needs a re-sync loop in `HostView`.

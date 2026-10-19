@@ -12,14 +12,18 @@ export class Slots {
   sources: Source[] = [{ kind: 'keyboard' }, ...Array.from({ length: PORTS - 1 }, () => ({ kind: 'none' } as Source))]
   masks: number[] = new Array(PORTS).fill(0)
 
+  /** Put a source on the lowest free port, or return -1 if every port is taken. */
+  assign(source: Source): number {
+    const port = this.sources.findIndex((current) => current.kind === 'none')
+    if (port === -1) return -1
+    this.setSource(port, source)
+    return port
+  }
+
   /** Assign a joining peer to the lowest unowned port, or -1 for spectator. */
   assignPeer(id: string): number {
     const owned = this.portOf(id)
-    if (owned !== -1) return owned
-    const port = this.sources.findIndex((source) => source.kind === 'none')
-    if (port === -1) return -1
-    this.setSource(port, { kind: 'peer', id })
-    return port
+    return owned !== -1 ? owned : this.assign({ kind: 'peer', id })
   }
 
   releasePeer(id: string) {
