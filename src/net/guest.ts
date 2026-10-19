@@ -15,6 +15,8 @@ export interface GuestEvents {
   /** Sound only; pictures arrive through `onFrame`. */
   onAudio(stream: MediaStream): void
   onSlot(port: number): void
+  /** How many face buttons this game has, as set by the host. */
+  onButtons(count: number): void
   /** One decoded picture, plus how long it took from capture on the host to a bitmap here. */
   onFrame(bitmap: ImageBitmap, latency: number): void
 }
@@ -74,6 +76,7 @@ export class GuestNet {
     try {
       const message = JSON.parse(data) as HostMessage
       if (message.t === 'slot') this.events.onSlot(message.port)
+      else if (message.t === 'buttons') this.events.onButtons(message.count)
     } catch {
       /* ignore malformed control messages */
     }

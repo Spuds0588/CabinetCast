@@ -19,6 +19,8 @@ export function GuestView({ code }: { code: string }) {
   const [status, setStatus] = useState<GuestStatus>('connecting')
   const [detail, setDetail] = useState('')
   const [port, setPort] = useState(-1)
+  // The host names how many face buttons this game uses; the pad only draws that many.
+  const [buttons, setButtons] = useState(4)
   const [audio, setAudio] = useState<MediaStream | null>(null)
   const [painted, setPainted] = useState(false)
   const [sound, setSound] = useState(false)
@@ -71,6 +73,7 @@ export function GuestView({ code }: { code: string }) {
       },
       onAudio: setAudio,
       onSlot: setPort,
+      onButtons: setButtons,
       onFrame: (bitmap, latency) => sink.current(bitmap, latency),
     })
     net.current = guest
@@ -229,7 +232,7 @@ export function GuestView({ code }: { code: string }) {
         )}
       </div>
 
-      {showTouch && <TouchControls onChange={(mask) => (touchMask.current = mask)} />}
+      {showTouch && <TouchControls buttons={buttons} onChange={(mask) => (touchMask.current = mask)} />}
 
       <footer className="guestfoot">
         <span className="tag">

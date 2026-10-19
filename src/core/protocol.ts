@@ -136,7 +136,16 @@ export const randomCode = (length = 5) =>
 /** What a player is holding. Guests report theirs; the host derives it for local sources. */
 export type InputKind = 'keyboard' | 'gamepad' | 'arcade' | 'touch'
 
-export type HostMessage = { t: 'slot'; port: number; spectator: boolean }
+/** Face buttons a game can offer, in the order the core maps them. */
+export const BUTTON_COUNTS = [2, 3, 4, 6] as const
+
+/**
+ * How many face buttons this game uses. RetroArch logs SET_INPUT_DESCRIPTORS but never exposes the
+ * descriptors to JS, so the host names the count per game and the guests draw that many.
+ */
+export type HostMessage =
+  | { t: 'slot'; port: number; spectator: boolean }
+  | { t: 'buttons'; count: number }
 
 export type GuestMessage =
   /** Sent the moment the data channel opens, before any call is offered. */

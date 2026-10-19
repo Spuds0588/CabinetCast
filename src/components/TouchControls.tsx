@@ -3,8 +3,18 @@ import { INPUT_BITS } from '../core/protocol'
 
 const DIRECTIONS = INPUT_BITS.UP | INPUT_BITS.DOWN | INPUT_BITS.LEFT | INPUT_BITS.RIGHT
 
+/** The face buttons in core order, so a two-button game shows A and B and nothing else. */
+const FACE = [
+  { bit: INPUT_BITS.BUTTON_1, label: 'A', area: 'a' },
+  { bit: INPUT_BITS.BUTTON_2, label: 'B', area: 'b' },
+  { bit: INPUT_BITS.BUTTON_3, label: 'C', area: 'c' },
+  { bit: INPUT_BITS.BUTTON_4, label: 'D', area: 'd' },
+  { bit: INPUT_BITS.BUTTON_5, label: 'E', area: 'e' },
+  { bit: INPUT_BITS.BUTTON_6, label: 'F', area: 'f' },
+]
+
 /** On-screen controls for touch devices. Emits the same 12-bit mask as the keyboard and gamepad. */
-export function TouchControls({ onChange }: { onChange: (mask: number) => void }) {
+export function TouchControls({ onChange, buttons = 6 }: { onChange: (mask: number) => void; buttons?: number }) {
   const held = useRef(0)
   const [mask, setMask] = useState(0)
 
@@ -88,11 +98,11 @@ export function TouchControls({ onChange }: { onChange: (mask: number) => void }
           {button(INPUT_BITS.COIN, 'Coin', 'wide')}
           {button(INPUT_BITS.START, 'Start', 'wide')}
         </div>
-        <div className="face">
-          {button(INPUT_BITS.BUTTON_1, 'A', '', 'a')}
-          {button(INPUT_BITS.BUTTON_2, 'B', '', 'b')}
-          {button(INPUT_BITS.BUTTON_3, 'C', '', 'c')}
-          {button(INPUT_BITS.BUTTON_4, 'D', '', 'd')}
+        {/* Four buttons keep the arcade diamond; any other count uses a plain grid. */}
+        <div className={buttons === 4 ? 'face' : 'face grid'}>
+          {FACE.slice(0, Math.max(2, Math.min(buttons, FACE.length))).map((face) =>
+            button(face.bit, face.label, '', face.area),
+          )}
         </div>
       </div>
     </div>

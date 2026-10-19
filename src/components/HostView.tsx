@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getBios, saveBios } from '../core/bios'
 import { launchArcade, type ArcadeSession } from '../core/emulator'
 import { createKeyboard, padLabel, padMask, pads } from '../core/input'
-import { FRAME_PRESETS, type FramePreset } from '../core/protocol'
+import { BUTTON_COUNTS, FRAME_PRESETS, type FramePreset } from '../core/protocol'
 import { ago, deleteSave, getSave, putSave, romKey, saveTimes, type SaveSlot } from '../core/saves'
 import { Slots, type Source } from '../core/slots'
 import { useFullscreen, useViewShortcuts, useWidescreen } from '../core/view'
@@ -33,6 +33,7 @@ export function HostView() {
   const [saves, setSaves] = useState<Partial<Record<SaveSlot, number>>>({})
   const [saveStatus, setSaveStatus] = useState('')
   const [preset, setPreset] = useState<FramePreset>(() => loadPreset())
+  const [buttonCount, setButtonCount] = useState(4)
   const [wide, toggleWide] = useWidescreen()
   const fullscreen = useFullscreen(() => cabinet.current)
   useViewShortcuts({ fullscreen: fullscreen.toggle, widescreen: toggleWide })
@@ -48,6 +49,8 @@ export function HostView() {
   const romKeyRef = useRef('')
   const presetRef = useRef(preset)
   presetRef.current = preset
+  const buttonsRef = useRef(buttonCount)
+  buttonsRef.current = buttonCount
   const savingRef = useRef(false)
   // Set by the Saves panel's forget button: no more auto-saves for this session, so the next launch is fresh.
   const autoPaused = useRef(false)
@@ -61,6 +64,14 @@ export function HostView() {
     localStorage.setItem(PRESET_KEY, next.id)
     session.current?.setFrameSize(next.width, next.height)
     host.current?.setFrameOptions({ quality: next.quality })
+  }
+
+  /** Face buttons are a property of the game, so the choice sticks to the ROM's key. */
+  const applyButtons = (count: number) => {
+    setButtonCount(count)
+    buttonsRef.current = count
+    if (romKeyRef.current) localStorage.setItem(`cabinetcast:buttons:${romKeyRef.current}`, String(count))
+    host.current?.setButtons(count)
   }
 
   const refreshSaves = async (key: string) => setSaves(await saveTimes(key))
@@ -255,6 +266,9 @@ export function HostView() {
       next.setFrameSize(presetRef.current.width, presetRef.current.height)
       session.current = next
       romKeyRef.current = romKey(file)
+      const savedButtons = Number(localStorage.getItem(`cabinetcast:buttons:${romKeyRef.current}`)) || 4
+      setButtonCount(savedButtons)
+      buttonsRef.current = savedButtons
       setRom(next.romName)
       setFps(0)
       setStatus('running')
@@ -269,6 +283,7 @@ export function HostView() {
           return
         }
         host.current?.setFrameOptions({ quality: presetRef.current.quality })
+        host.current?.setButtons(buttonsRef.current)
         host.current?.setCanvas(next.getCanvas())
         host.current?.setAudio(audio)
       }
@@ -542,6 +557,27 @@ export function HostView() {
             <p className="muted small">
               Frames are sent as JPEGs, so bigger ones cost bandwidth but not much CPU. The core draws 384×288;
               the wider presets only give the picture a finer grid and a softer stretch on a big screen.
+            </p>
+            <div className="panel-head">
+              <h2>Face buttons</h2>
+              <span className="count">this game</span>
+            </div>
+            <div className="row">
+              {BUTTON_COUNTS.map((count) => (
+                <button
+                  key={count}
+                  className={count === buttonCount ? 'primary' : 'ghost'}
+                  aria-pressed={count === buttonCount}
+                  onClick={() => applyButtons(count)}
+                  disabled={status !== 'running'}
+                >
+                  {count}
+                </button>
+              ))}
+            </div>
+            <p className="muted small">
+              RetroArch logs the core's input descriptors but does not expose them, so this is the host's call.
+              Phones draw only these buttons; keyboard and gamepad keep the full six.
             </p>
           </div>
 

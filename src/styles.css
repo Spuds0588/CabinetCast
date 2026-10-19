@@ -633,6 +633,17 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .face .touch-btn.b { grid-area: b; }
 .face .touch-btn.c { grid-area: c; }
 .face .touch-btn.d { grid-area: d; }
+
+/* Any count other than four is a plain grid: a diamond of two looks broken, and E/F do not fit it. */
+.face.grid {
+  display: grid;
+  grid-template-columns: repeat(3, var(--face-size));
+  grid-template-rows: auto auto;
+  gap: 6px;
+  transform: none;
+}
+
+.face.grid .touch-btn { transform: none; }
 .touch-btn {
   width: 70px;
   height: 70px;

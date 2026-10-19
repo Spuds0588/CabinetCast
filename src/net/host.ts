@@ -55,6 +55,8 @@ export class HostNet {
   private canvas: HTMLCanvasElement | null = null
   /** JPEG quality the host asked for; the pump drops below it only under channel pressure. */
   private quality = FRAME_QUALITY
+  /** Face buttons guests should draw; the host sets it per game. Four is the arcade default. */
+  private buttons = 4
   private opened!: Promise<void>
   private closed = false
 
@@ -105,6 +107,7 @@ export class HostNet {
       // exists, and the guest simply ignores any that arrive before it has decoded one.
       if (this.audio) this.callGuest(id)
       this.startFrames(id)
+      this.send(id, { t: 'buttons', count: this.buttons })
     })
     conn.on('close', () => this.drop(id))
     conn.on('error', () => this.drop(id))
@@ -134,6 +137,7 @@ export class HostNet {
     this.roster()
     if (this.audio) this.callGuest(id)
     this.startFrames(id)
+    this.send(id, { t: 'buttons', count: this.buttons })
   }
 
   private drop(id: string) {
@@ -256,6 +260,12 @@ export class HostNet {
   setCanvas(canvas: HTMLCanvasElement) {
     this.canvas = canvas
     for (const id of this.conns.keys()) this.startFrames(id)
+  }
+
+  /** How many face buttons this game has; every guest is told, including later arrivals. */
+  setButtons(count: number) {
+    this.buttons = count
+    for (const id of this.conns.keys()) this.send(id, { t: 'buttons', count })
   }
 
   /** Change the JPEG quality and restart the pumps so every guest uses it immediately. */
