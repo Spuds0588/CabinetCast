@@ -63,8 +63,8 @@ export function useFullscreen(getTarget: () => HTMLElement | null) {
 }
 
 /**
- * Shift+F fullscreen, Shift+W widescreen. Both are captured before the per-port keyboard readers
- * (which listen on window in the bubble phase), because plain F is Port 2's right arrow.
+ * Shift+F fullscreen, Shift+W widescreen. Both are captured before the player-1 keyboard reader (which
+ * listens on window in the bubble phase), because W is player 1's up key and Shift+W would also move.
  */
 export function useViewShortcuts(actions: { fullscreen: () => void; widescreen: () => void }) {
   const latest = useRef(actions)

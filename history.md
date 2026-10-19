@@ -2,6 +2,28 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — One keyboard, one port: players 2–4 bring their own device
+
+**Four keyboard rows were pretending to be four players.** Every port had a full key map (P2 arrows +
+Z/X/C/V, P3 T F G H + R Y, P4 the numpad) and the help dialog listed all of them, but on the host they
+all read the same physical keyboard, which is not how anyone plays a four-player cabinet. P1 keeps WASD +
+J K L U I O + Space/Enter; P2–P4 need a gamepad, an arcade stick or a phone.
+
+**The rows 2–4 could not simply be deleted.** Nostalgist's `pressDown` works by firing a synthetic key
+event for `input_playerN_<button>`, so the core still needs a unique key per port or injected guest and
+gamepad input stops reaching P2–P4. `PORT_KEYS` keeps all four rows for `PORT_KEY_CONFIG`; `KEY_BITS` is
+now derived from P1 only, and `createKeyboard()` takes no port at all. `Slots.setSource` clamps a keyboard
+to port 0, `Slots.assign` refuses it while P1 is taken, `SlotPanel` disables Assign for the same reason and
+no longer lists a keyboard in `+ Add player input`, and the `?` dialog shows the single P1 card plus a line
+about players 2–4. The canvas is now blurred on every focus event, so clicking the cabinet cannot hand
+native keys to the core and quietly re-enable the P2–P4 bindings.
+
+**Verified:** a physical `KeyW`/`KeyJ`/`Space` is accepted by the reader (`defaultPrevented`), while
+`KeyZ`, `KeyX`, `ArrowUp` and `KeyT` are ignored. The `?` dialog renders one P1 card. The add-input menu has
+no keyboard entry. Guest input on P2 still reaches the core after the reader change: space+enter from a
+phone guest started `xmen6pu` (attract loop → character select), which is what the retained P2 binds are
+for. `npm run build` passes.
+
 ## 2026-10-19 — Phone had sound and controls but no picture: a codec ladder and a visible readout
 
 **Report.** Both `xmen6pu` and `tmnt2` on the phone: audio in sync, touch controls working, screen a plain

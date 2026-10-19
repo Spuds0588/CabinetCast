@@ -17,6 +17,8 @@ export function SlotPanel({ slots, peers, onAssign, onClear, tick }: Props) {
   const [menu, setMenu] = useState(false)
   const detectedPads = pads()
   const free = slots.sources.some((source) => source.kind === 'none')
+  // The keyboard has no keys outside player 1, so it can only be added while P1 is free.
+  const keyboardFree = slots.sources[0].kind === 'none'
 
   const label = (source: Source) => {
     if (source.kind === 'keyboard') return 'Keyboard'
@@ -149,7 +151,12 @@ export function SlotPanel({ slots, peers, onAssign, onClear, tick }: Props) {
             {row.kind === 'peer' ? (
               row.port === -1 && <span className="tag">spectator</span>
             ) : row.port === -1 ? (
-              <button className="mini" onClick={() => assignRow(row)} disabled={!free}>
+              <button
+                className="mini"
+                onClick={() => assignRow(row)}
+                disabled={row.kind === 'keyboard' ? !keyboardFree : !free}
+                title={row.kind === 'keyboard' && !keyboardFree ? 'Player 1 is taken; the keyboard has no other port' : undefined}
+              >
                 Assign
               </button>
             ) : (
@@ -170,13 +177,14 @@ export function SlotPanel({ slots, peers, onAssign, onClear, tick }: Props) {
         </button>
         {menu && free && (
           <div className="input-menu">
-            <button onClick={() => assign({ kind: 'keyboard' })}>Keyboard</button>
             {unassignedPads.map(({ pad }) => (
               <button key={pad.index} onClick={() => assign({ kind: 'pad', index: pad.index })}>
                 {padLabel(pad)}
               </button>
             ))}
-            {!unassignedPads.length && <p className="muted small">Connect a gamepad, or add another keyboard.</p>}
+            {!unassignedPads.length && (
+              <p className="muted small">Connect a gamepad. Players 2–4 need their own device.</p>
+            )}
           </div>
         )}
       </div>

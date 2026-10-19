@@ -3,30 +3,14 @@ import { INPUT_BITS, KEY_BITS } from './protocol'
 const DEADZONE = 0.4
 
 /** Compact, human labels for the keys the help dialog shows. */
-const KEY_LABELS: Record<string, string> = {
-  ArrowUp: '↑',
-  ArrowDown: '↓',
-  ArrowLeft: '←',
-  ArrowRight: '→',
-  Space: 'Space',
-  Enter: 'Enter',
-  Tab: 'Tab',
-  Backspace: '⌫',
-  Comma: ',',
-  Period: '.',
-  NumpadDivide: 'Num /',
-  NumpadMultiply: 'Num *',
-  NumpadSubtract: 'Num −',
-  NumpadAdd: 'Num +',
-}
+const KEY_LABELS: Record<string, string> = { Space: 'Space', Enter: 'Enter' }
 
 export const keyLabel = (code: string) =>
-  KEY_LABELS[code] ??
-  (code.startsWith('Key') ? code.slice(3) : code.startsWith('Digit') ? code.slice(5) : code.startsWith('Numpad') ? `Num ${code.slice(-1)}` : code)
+  KEY_LABELS[code] ?? (code.startsWith('Key') ? code.slice(3) : code.startsWith('Digit') ? code.slice(5) : code)
 
-/** Physical keyboard for one port -> bitmask. Ignored while typing in a field. */
-export function createKeyboard(port = 0) {
-  const bits = KEY_BITS[port] ?? {}
+/** The host keyboard, which is player 1 -> bitmask. Ignored while typing in a field. */
+export function createKeyboard() {
+  const bits = KEY_BITS
   const held = new Set<string>()
   const ignored = (event: KeyboardEvent) =>
     event.target instanceof HTMLElement && /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)

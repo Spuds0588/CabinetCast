@@ -12,8 +12,16 @@ export class Slots {
   sources: Source[] = [{ kind: 'keyboard' }, ...Array.from({ length: PORTS - 1 }, () => ({ kind: 'none' } as Source))]
   masks: number[] = new Array(PORTS).fill(0)
 
-  /** Put a source on the lowest free port, or return -1 if every port is taken. */
+  /**
+   * Put a source on the lowest free port, or return -1 if every port is taken. The local keyboard is
+   * player 1 or nothing: there are no keys for the other ports, so it is only added when P1 is free.
+   */
   assign(source: Source): number {
+    if (source.kind === 'keyboard') {
+      if (this.sources[0]?.kind !== 'none') return -1
+      this.setSource(0, source)
+      return 0
+    }
     const port = this.sources.findIndex((current) => current.kind === 'none')
     if (port === -1) return -1
     this.setSource(port, source)
@@ -38,9 +46,11 @@ export class Slots {
   /** Set a port's source, keeping a peer or gamepad from owning two ports at once. */
   setSource(port: number, source: Source) {
     const key = ownerKey(source)
-    if (key) this.sources = this.sources.map((current, index) => (index !== port && ownerKey(current) === key ? { kind: 'none' } : current))
-    this.sources[port] = source
-    this.masks[port] = 0
+    // The keyboard only exists on port 0; asking for another port still means player 1.
+    const target = source.kind === 'keyboard' ? 0 : port
+    if (key) this.sources = this.sources.map((current, index) => (index !== target && ownerKey(current) === key ? { kind: 'none' } : current))
+    this.sources[target] = source
+    this.masks[target] = 0
   }
 }
 

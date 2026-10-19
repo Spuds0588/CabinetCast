@@ -45,14 +45,19 @@ const pad = (up: string, down: string, left: string, right: string, b1: string, 
   ({ up, down, left, right, y: b1, b: b2, a: b3, x: b4, l: b5, r: b6, select, start })
 
 /**
- * One unique physical key (DOM `KeyboardEvent.code`) per action per port. Keys never repeat across
- * ports, otherwise one port's keypress would drive another. Hotkey-risky keys (f1, escape) are avoided.
- * P1 and P2 use the two layouts arcade players reach for first: WASD + J/K/L, then arrows + Z/X/C/V.
- * This is the single contract: the input reader, the help dialog and the core's key bindings all derive
- * from it, so adding or moving a key never needs a second table.
+ * The one physical keyboard layout: player 1. This is what the reader and the help dialog use.
+ * WASD moves, J K L U I O are A-F, Space is coin, Enter is start.
+ */
+const P1_KEYS = pad('KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyI', 'KeyO', 'Space', 'Enter')
+
+/**
+ * One unique key per action per port, for all four ports. Only row 0 (`P1_KEYS`) is ever read from a
+ * physical keyboard: players 2-4 need their own device, a gamepad or a phone. Rows 1-3 still have to
+ * exist because injected input fires a synthetic key event for that port's binding, so the core needs a
+ * distinct code per port. Hotkey-risky keys (f1, escape) are avoided.
  */
 export const PORT_KEYS = [
-  pad('KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyI', 'KeyO', 'Space', 'Enter'),
+  P1_KEYS,
   pad('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'Tab', 'Backspace'),
   pad('KeyT', 'KeyG', 'KeyF', 'KeyH', 'KeyR', 'KeyY', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Comma', 'Period'),
   pad('Numpad8', 'Numpad2', 'Numpad4', 'Numpad6', 'Numpad7', 'Numpad9', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract', 'NumpadAdd', 'Numpad0', 'Numpad5'),
@@ -96,12 +101,9 @@ export const NEUTRALIZED_HOTKEYS = {
 
 const BIT_OF = Object.fromEntries(BIT_TO_JOYPAD.map(([bit, action]) => [action, bit]))
 
-/**
- * Physical key -> bitmask, one table per port, derived from PORT_KEYS so no key can drive two ports.
- * No alias keys: every keyboard layout gets its own row here and nowhere else.
- */
-export const KEY_BITS: Record<string, number>[] = PORT_KEYS.map((keys) =>
-  Object.fromEntries(Object.entries(keys).map(([action, code]) => [code, BIT_OF[action]])),
+/** Player 1's physical key -> bitmask. The keyboard reader and the help dialog both read this table. */
+export const KEY_BITS: Record<string, number> = Object.fromEntries(
+  Object.entries(P1_KEYS).map(([action, code]) => [code, BIT_OF[action]]),
 )
 
 export const ENDPOINT = (code: string) => `cab-${code}`

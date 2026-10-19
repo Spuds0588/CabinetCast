@@ -59,6 +59,10 @@
       Ctrl/Cmd/Alt combos are no longer swallowed by the input readers (2026-10-19)
 - [x] P1 coin and start verified end to end on the new rows: `Space` advanced the attract loop, `Enter`
       started the game (2026-10-19)
+- [x] Keyboard is player 1 only: `KEY_BITS` derives from the P1 row, `createKeyboard()` takes no port, Slots
+      pins the keyboard to port 0 and refuses it while P1 is taken, the help dialog shows one map, and the
+      add-input menu lists devices only. Rows 2–4 stay in `PORT_KEYS` purely as injection codes so guest and
+      gamepad input still reaches P2–P4 (2026-10-19)
 - [x] Codec pins: `videoSdp(sdp, pin)` with `auto | vp8 | h264`, one codec per pinned offer, rtx kept with
       its codec; all three verified against a real Chrome offer and a live call (2026-10-19)
 - [x] Guest sends `{t:'hello', platform}`; Chromium guests get VP8 on the first offer, Apple gets H.264 first

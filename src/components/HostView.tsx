@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getBios, saveBios } from '../core/bios'
 import { launchArcade, type ArcadeSession } from '../core/emulator'
 import { createKeyboard, padLabel, padMask, pads } from '../core/input'
-import { PORT_KEYS } from '../core/protocol'
 import { ago, deleteSave, getSave, putSave, romKey, saveTimes, type SaveSlot } from '../core/saves'
 import { Slots, type Source } from '../core/slots'
 import { useFullscreen, useViewShortcuts, useWidescreen } from '../core/view'
@@ -36,7 +35,7 @@ export function HostView() {
   const cabinet = useRef<HTMLElement>(null)
   const host = useRef<HostNet | null>(null)
   const session = useRef<ArcadeSession | null>(null)
-  const keyboards = useRef<ReturnType<typeof createKeyboard>[]>([])
+  const keyboard = useRef<ReturnType<typeof createKeyboard> | null>(null)
   const knownPads = useRef(new Set<number>())
   const fileInput = useRef<HTMLInputElement>(null)
   const romKeyRef = useRef('')
@@ -80,9 +79,9 @@ export function HostView() {
 
   useEffect(() => {
     getBios().then((bios) => setBiosReady(Boolean(bios)))
-    // One reader per port: each keyboard slot only sees the keys PORT_KEYS declares for that port.
-    const keys = PORT_KEYS.map((_, port) => createKeyboard(port))
-    keyboards.current = keys
+    // One reader, one port: the host keyboard is player 1. Players 2-4 bring a gamepad or a phone.
+    const keys = createKeyboard()
+    keyboard.current = keys
 
     let disposed = false
     HostNet.start({
@@ -117,7 +116,8 @@ export function HostView() {
 
     return () => {
       disposed = true
-      keys.forEach((reader) => reader.dispose())
+      keys.dispose()
+      keyboard.current = null
       host.current?.destroy()
       host.current = null
     }
@@ -132,7 +132,7 @@ export function HostView() {
       const active = session.current
       if (active) {
         slots.sources.forEach((source, port) => {
-          if (source.kind === 'keyboard') slots.masks[port] = keyboards.current[port]?.mask() ?? 0
+          if (source.kind === 'keyboard') slots.masks[port] = keyboard.current?.mask() ?? 0
           if (source.kind === 'pad') {
             const pad = navigator.getGamepads()[source.index]
             slots.masks[port] = pad ? padMask(pad) : 0
@@ -442,7 +442,7 @@ export function HostView() {
                 {error && <p className="error">{error}</p>}
                 <p className="keys">
                   P1 keyboard: WASD to move · J K L U I O buttons · Space coin · Enter start · <kbd>?</kbd> for
-                  every player
+                  the map. Players 2–4 join with a gamepad or a phone.
                 </p>
               </div>
             </div>

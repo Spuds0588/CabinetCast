@@ -416,7 +416,7 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .qr-url { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
 .qr-card .row { justify-content: center; }
 
-/* Keyboard help: one card per port, read straight off PORT_KEYS. */
+/* Keyboard help: one card, player 1's map, read straight off KEY_BITS. */
 .keys-card {
   width: min(620px, 100%);
   max-height: min(86vh, 760px);
@@ -438,6 +438,8 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .key-ports { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
 
 .key-port {
+  /* One card now; keep it from stretching the full width of the dialog. */
+  max-width: 460px;
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 10px;

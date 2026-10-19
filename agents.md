@@ -21,17 +21,20 @@ hosted on GitHub Pages. Tauri packaging is deferred.
 - **RetroArch rewrites the canvas `id` to `canvas`** and sets inline width/height. Style it as
   `.cabinet canvas` and keep the CSS size at 384x288: RetroArch sizes its rendering buffer from CSS size,
   so a large CSS canvas means a large, expensive video stream. We scale with `transform` instead.
-- **Per-port input is a keyboard-offset trick.** Nostalgist's `pressDown` fires a synthetic keyboard event
-  for the key bound to `input_playerN_<button>` in `retroarch.cfg`. That means:
-  - every port needs its own unique key per action (see `PORT_KEYS` in `src/core/protocol.ts`),
-  - `PORT_KEYS` is the single contract: `PORT_KEY_CONFIG` (the core's binds), `KEY_BITS` (the readers' key
-    tables) and the `?` help dialog are all derived from it. `createKeyboard(port)` reads only that port's
-    keys, so a "Local keyboard" slot can never replay another port's input. No alias keys: a layout owns its
-    keys outright, which is why P1 is WASD + J/K/L and P2 moved to arrows + Z/X/C/V rather than either row
-    being shared,
-  - P1 is the traditional layout (WASD move, J K L U I O = A–F, Space coin, Enter start); P2 is arrows +
-    Z X C V/B N with Tab and Backspace as coin/start; P3 is T F G H + R Y/1–4 + comma/period; P4 is the
-    numpad. Reordering these is a one-line change per row, and the help dialog follows automatically,
+- **Per-port input is a keyboard-offset trick, and only player 1 has a keyboard.** Nostalgist's `pressDown`
+  fires a synthetic keyboard event for the key bound to `input_playerN_<button>` in `retroarch.cfg`. That
+  means:
+  - every port needs its own unique key per action (see `PORT_KEYS` in `src/core/protocol.ts`) even though
+    rows 1–3 are never read from a physical keyboard: they exist only so injected input (a phone guest, a
+    gamepad) has a distinct code to fire. Removing them breaks players 2–4 completely,
+  - `P1_KEYS` is the only readable layout and `KEY_BITS` is derived from it alone. `createKeyboard()` takes
+    no port: the host keyboard is player 1, full stop. Players 2–4 bring a gamepad or a phone,
+  - `Slots.setSource` clamps a keyboard to port 0 and `Slots.assign` refuses it when P1 is taken, so a
+    keyboard can never land on a port whose keys do not exist. `SlotPanel` disables its Assign button for
+    the same reason and does not offer a keyboard in `+ Add player input`,
+  - the `?` dialog shows the single P1 map and says players 2–4 need their own device,
+  - the canvas is blurred at launch and a `focus` handler blurs it again, so a click cannot hand native
+    keys to the core (which would drive the 2–4 bindings that only exist for injection),
   - plain keys are `preventDefault`ed, but Ctrl/Cmd/Alt + key is left alone so Ctrl+W still closes the tab,
   - RetroArch only ships keyboard binds for players 1–4, so **MPV is 4 ports**, extra peers spectate,
   - hotkeys are set to `nul` so a synthetic player key cannot open a menu or quit the game,
@@ -114,7 +117,7 @@ hosted on GitHub Pages. Tauri packaging is deferred.
   desktop-mode pointers stuck in the full UI. Do not add chrome back inside `.handheld`; the only overlays
   allowed are the sound prompt and the touch pad.
 - **View shortcuts must not collide with player keys.** `Shift+F` / `Shift+W` live in `src/core/view.ts` and
-  run in the capture phase with `stopImmediatePropagation`, because plain `F` is P2's right arrow. Never add
+  run in the capture phase with `stopImmediatePropagation`, because `W` is player 1's up key. Never add
   a plain-letter UI shortcut: all free letters are one gamepad remap away from being a player key.
 - **Widescreen is a stretch, not a render mode.** FBNeo draws native 4:3; RetroArch's aspect settings scale
   the frontend output. `.cabinet.wide` / `.stage.wide` stretch the picture to 16:9, and the canvas fit in

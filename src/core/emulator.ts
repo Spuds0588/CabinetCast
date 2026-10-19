@@ -48,7 +48,9 @@ export async function launchArcade(file: File, bios?: Blob): Promise<ArcadeSessi
     ),
   ])
 
-  // Native focus would let physical keys reach RetroArch itself; all input is injected instead.
+  // Native focus would let physical keys reach RetroArch itself, including the player 2-4 bindings that
+  // exist only for injected input. Every input is injected, so the canvas never keeps focus.
+  element.addEventListener('focus', () => element.blur())
   element.blur()
   if (isDebug()) Object.assign(globalThis, { __cabinetCore: emulator })
 

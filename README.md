@@ -16,11 +16,12 @@ Built for shared-screen arcade games, the ones where everybody plays on the same
   any gamepad, or the on-screen touch controls on a phone. Portrait keeps the picture at the top and the pad
   below it; turn the phone sideways for a full-screen cabinet with translucent controls over the side bars.
 
-Host keyboard is player 1 by default; each guest takes the next free port. The Players panel lists every
-detected input and lets you move any keyboard, gamepad or guest to another port, or add one by hand.
+Player 1 is the host keyboard; each guest or gamepad takes the next free port. The Players panel lists every
+detected input and lets you move a gamepad or guest to another port. The keyboard stays on player 1, because
+it is the only port with keys of its own.
 
-Press `?` (or the Keys button) for the default keys for all four local players: P1 WASD + `J K L U I O`,
-P2 arrows + `Z X C V`, P3 `T F G H` + `R Y 1 2 3 4`, P4 the numpad.
+Press `?` (or the Keys button) for player 1's keys: WASD + `J K L U I O`, `Space` coin, `Enter` start. The
+host keyboard is player 1 only: players 2–4 need their own device, a gamepad or a phone joining the room.
 
 The top menu bar has the invite link, QR code, widescreen and fullscreen toggles, and Stop. Fullscreen is
 `Shift+F`, widescreen is `Shift+W`. Widescreen stretches the core's 4:3 picture to 16:9 for viewers who
@@ -47,8 +48,9 @@ npm run build    # typecheck + production build
 
 ## Notes
 
-- 4 player ports (RetroArch keyboard bindings exist for players 1–4). Extra guests spectate. Each row is
-  tagged with the keyboard, gamepad, arcade stick or phone the player is actually using.
+- 4 player ports. The host keyboard is player 1; players 2–4 use a gamepad, an arcade stick, or a phone.
+  Extra guests spectate. Each row is tagged with the keyboard, gamepad, arcade stick or phone the player is
+  actually using.
 - Save states live in the host's IndexedDB only, keyed by ROM name and size, and are never sent to guests.
 - Neo Geo sets need a `neogeo.zip` matching the core; drop it once and it is stored in IndexedDB.
 - Video codecs adapt to the guest: H.264 first for Safari, VP8 first for Chrome and Android. If a guest has
