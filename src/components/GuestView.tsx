@@ -4,6 +4,7 @@ import type { InputKind } from '../core/protocol'
 import { useFullscreen, useViewShortcuts, useWidescreen } from '../core/view'
 import { GuestNet, type GuestStatus } from '../net/guest'
 import { InputIcon } from './InputIcon'
+import { KeyHelp, useHelpShortcut } from './KeyHelp'
 import { TouchControls } from './TouchControls'
 
 const STATUS_TEXT: Record<GuestStatus, string> = {
@@ -25,8 +26,10 @@ export function GuestView({ code }: { code: string }) {
   // Phones and small windows get the handheld layout: game only, controls over it, no chrome.
   const [compact, setCompact] = useState(() => matchMedia('(pointer: coarse)').matches || innerWidth < 640 || innerHeight < 500)
   const [wide, toggleWide] = useWidescreen()
+  const [keysOpen, setKeysOpen] = useState(false)
   const fullscreen = useFullscreen(() => stage.current)
   useViewShortcuts({ fullscreen: fullscreen.toggle, widescreen: toggleWide })
+  useHelpShortcut(setKeysOpen)
 
   const net = useRef<GuestNet | null>(null)
   const video = useRef<HTMLVideoElement>(null)
@@ -163,7 +166,10 @@ export function GuestView({ code }: { code: string }) {
           <InputIcon kind={ownKind} size={14} />
           {port === -1 ? 'Spectator' : `Player ${port + 1}`}
         </span>
-        <span className="muted small">Arrows · Z X C V · A S buttons · Space coin · Enter start · any gamepad</span>
+        <span className="muted small">WASD · J K L U I O buttons · Space coin · Enter start · any gamepad</span>
+        <button className="ghost mini" onClick={() => setKeysOpen(true)} title="Default keyboard keys (?)">
+          Keys
+        </button>
         <button className="ghost mini" aria-pressed={wide} onClick={toggleWide} title="Stretch the 4:3 feed to 16:9 (Shift+W)">
           Widescreen
         </button>
@@ -179,6 +185,8 @@ export function GuestView({ code }: { code: string }) {
           {touch ? 'Touch controls ✓' : 'Touch controls'}
         </button>
       </footer>
+
+      {keysOpen && <KeyHelp onClose={() => setKeysOpen(false)} />}
     </div>
   )
 }

@@ -2,6 +2,28 @@ import { INPUT_BITS, KEY_BITS } from './protocol'
 
 const DEADZONE = 0.4
 
+/** Compact, human labels for the keys the help dialog shows. */
+const KEY_LABELS: Record<string, string> = {
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  Space: 'Space',
+  Enter: 'Enter',
+  Tab: 'Tab',
+  Backspace: '⌫',
+  Comma: ',',
+  Period: '.',
+  NumpadDivide: 'Num /',
+  NumpadMultiply: 'Num *',
+  NumpadSubtract: 'Num −',
+  NumpadAdd: 'Num +',
+}
+
+export const keyLabel = (code: string) =>
+  KEY_LABELS[code] ??
+  (code.startsWith('Key') ? code.slice(3) : code.startsWith('Digit') ? code.slice(5) : code.startsWith('Numpad') ? `Num ${code.slice(-1)}` : code)
+
 /** Physical keyboard for one port -> bitmask. Ignored while typing in a field. */
 export function createKeyboard(port = 0) {
   const bits = KEY_BITS[port] ?? {}
@@ -9,6 +31,8 @@ export function createKeyboard(port = 0) {
   const ignored = (event: KeyboardEvent) =>
     event.target instanceof HTMLElement && /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)
   const down = (event: KeyboardEvent) => {
+    // Never eat a browser shortcut: Ctrl/Cmd/Alt + W must still close the tab.
+    if (event.ctrlKey || event.metaKey || event.altKey) return
     if (!bits[event.code] || event.repeat || ignored(event)) return
     held.add(event.code)
     event.preventDefault()

@@ -12,12 +12,15 @@ Built for shared-screen arcade games, the ones where everybody plays on the same
 - **Host:** https://spuds0588.github.io/CabinetCast/ — drop an arcade `.zip`, share the invite link or QR code.
   The Saves panel keeps a host-only auto save plus three manual slots; drop the same ROM again to resume
   where you left off.
-- **Guest:** open the invite link. Arrows, `Z X C V`, `A S` buttons, `Space` coin, `Enter` start, any gamepad,
-  or the on-screen touch controls on a phone. Turn the phone sideways for a full-screen cabinet with
-  translucent controls over the side bars.
+- **Guest:** open the invite link. `WASD` to move, `J K L U I O` for buttons A–F, `Space` coin, `Enter` start,
+  any gamepad, or the on-screen touch controls on a phone. Portrait keeps the picture at the top and the pad
+  below it; turn the phone sideways for a full-screen cabinet with translucent controls over the side bars.
 
 Host keyboard is player 1 by default; each guest takes the next free port. The Players panel lists every
 detected input and lets you move any keyboard, gamepad or guest to another port, or add one by hand.
+
+Press `?` (or the Keys button) for the default keys for all four local players: P1 WASD + `J K L U I O`,
+P2 arrows + `Z X C V`, P3 `T F G H` + `R Y 1 2 3 4`, P4 the numpad.
 
 The top menu bar has the invite link, QR code, widescreen and fullscreen toggles, and Stop. Fullscreen is
 `Shift+F`, widescreen is `Shift+W`. Widescreen stretches the core's 4:3 picture to 16:9 for viewers who

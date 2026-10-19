@@ -40,18 +40,21 @@ export const PORTS = 4
  */
 export const STREAM_FPS = 30
 
-const pad = (up: string, down: string, left: string, right: string, a: string, b: string, x: string, y: string, l: string, r: string, select: string, start: string) =>
-  ({ up, down, left, right, a, b, x, y, l, r, select, start })
+/** Keys are listed in player order (B1..B6 = A..F), then mapped onto RetroArch's joypad names. */
+const pad = (up: string, down: string, left: string, right: string, b1: string, b2: string, b3: string, b4: string, b5: string, b6: string, select: string, start: string) =>
+  ({ up, down, left, right, y: b1, b: b2, a: b3, x: b4, l: b5, r: b6, select, start })
 
 /**
  * One unique physical key (DOM `KeyboardEvent.code`) per action per port. Keys never repeat across
  * ports, otherwise one port's keypress would drive another. Hotkey-risky keys (f1, escape) are avoided.
- * This is the single contract: the input reader and the core's key bindings are both derived from it.
+ * P1 and P2 use the two layouts arcade players reach for first: WASD + J/K/L, then arrows + Z/X/C/V.
+ * This is the single contract: the input reader, the help dialog and the core's key bindings all derive
+ * from it, so adding or moving a key never needs a second table.
  */
 export const PORT_KEYS = [
-  pad('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyA', 'KeyS', 'Space', 'Enter'),
-  pad('KeyE', 'KeyD', 'KeyQ', 'KeyF', 'KeyY', 'KeyU', 'KeyI', 'KeyO', 'KeyP', 'KeyH', 'KeyJ', 'KeyK'),
-  pad('KeyB', 'KeyN', 'KeyG', 'KeyT', 'KeyL', 'KeyM', 'Comma', 'Period', 'Tab', 'Backspace', 'Insert', 'Delete'),
+  pad('KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyI', 'KeyO', 'Space', 'Enter'),
+  pad('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'Tab', 'Backspace'),
+  pad('KeyT', 'KeyG', 'KeyF', 'KeyH', 'KeyR', 'KeyY', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Comma', 'Period'),
   pad('Numpad8', 'Numpad2', 'Numpad4', 'Numpad6', 'Numpad7', 'Numpad9', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract', 'NumpadAdd', 'Numpad0', 'Numpad5'),
 ]
 
@@ -61,7 +64,12 @@ const RETRO_NAMES: Record<string, string> = {
   NumpadDivide: 'divide', NumpadMultiply: 'multiply', NumpadSubtract: 'subtract', NumpadAdd: 'add',
 }
 const retroName = (code: string) =>
-  RETRO_NAMES[code] ?? (code.startsWith('Numpad') ? `num${code.slice(-1)}` : code.replace(/^Key/, '').toLowerCase())
+  RETRO_NAMES[code] ??
+  (code.startsWith('Numpad')
+    ? `num${code.slice(-1)}`
+    : code.startsWith('Digit')
+      ? code.slice(5)
+      : code.replace(/^Key/, '').toLowerCase())
 
 /** retroarchConfig fragment that binds every port's 12 actions to its own keys. */
 export const PORT_KEY_CONFIG = Object.fromEntries(
@@ -90,7 +98,7 @@ const BIT_OF = Object.fromEntries(BIT_TO_JOYPAD.map(([bit, action]) => [action, 
 
 /**
  * Physical key -> bitmask, one table per port, derived from PORT_KEYS so no key can drive two ports.
- * No alias keys: WASD would collide with P2's declared binds (KeyD is P2 down).
+ * No alias keys: every keyboard layout gets its own row here and nowhere else.
  */
 export const KEY_BITS: Record<string, number>[] = PORT_KEYS.map((keys) =>
   Object.fromEntries(Object.entries(keys).map(([action, code]) => [code, BIT_OF[action]])),

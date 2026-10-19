@@ -53,6 +53,12 @@
       the header and footer; portrait keeps the feed in the top half with the pad below, landscape fills the
       viewport and floats the pad over it (2026-10-19)
 - [x] Arcade diamond for A/B/C/D (C high, B right, D left, A low), sized to fit a 360px-wide phone (2026-10-19)
+- [x] Traditional keyboard rows: P1 WASD + J K L U I O, P2 arrows + Z X C V, P3 T F G H + R Y 1–4, P4 numpad;
+      no key repeats across ports (2026-10-19)
+- [x] Keyboard help dialog (`?`, or the Keys button on the host bar and guest footer) built from `PORT_KEYS`;
+      Ctrl/Cmd/Alt combos are no longer swallowed by the input readers (2026-10-19)
+- [x] P1 coin and start verified end to end on the new rows: `Space` advanced the attract loop, `Enter`
+      started the game (2026-10-19)
 
 ## Next
 - [ ] Prove multiplayer across real devices/networks (`npm run dev -- --host` for a LAN test or use the

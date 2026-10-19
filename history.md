@@ -2,6 +2,27 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — WASD/JKL for P1, and a keyboard map you can open
+
+**The rows were hostile to muscle memory.** P1 was arrows + Z/X/C/V + A/S, which is the RetroArch default but
+not the layout people reach for; WASD + J/K/L is. A key can only belong to one port, so moving P1 meant
+re-casting the rest: P1 = W A S D, J K L U I O (A–F), Space/Enter; P2 = arrows, Z X C V, B N, Tab/Backspace;
+P3 = T F G H, R Y, 1–4, comma/period; P4 keeps the numpad. `PORT_KEYS` changed only in its rows; the retroarch
+config, the readers and the new help dialog are all derived from it. All 48 DOM codes were checked for
+duplicates. End to end on the dev build: `Space` inserted a coin (attract loop advanced to "PRESS 1 PLAYER
+BUTTON") and `Enter` started the game ("GET READY").
+
+**The help dialog can't drift.** `src/components/KeyHelp.tsx` inverts `KEY_BITS` back to key labels, so a row
+change shows up in the dialog with no second table. It opens from the `Keys` button in the host menu bar, the
+`Keys` button in the guest footer, or `?` (Shift+Slash, which no port binds). Escape and a backdrop click
+close it, and it locks page scroll like the QR dialog. Both hardcoded hint lines (host drop screen, guest
+footer) were rewritten to match.
+
+**Modifier guard.** `createKeyboard` now ignores Ctrl/Cmd/Alt + key before mapping, so WASD/JKL columns do
+not swallow Ctrl+W, Cmd+R or Alt+Tab, while plain keys are still `preventDefault`ed so nothing scrolls or
+tabs the page.
+
+
 ## 2026-10-19 — Still a white square: H.264 first, and an m-line parsing bug
 
 **The previous fix was not in the bundle.** After the codec filter landed, the phone still showed a white

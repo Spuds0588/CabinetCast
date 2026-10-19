@@ -7,6 +7,7 @@ import { ago, deleteSave, getSave, putSave, romKey, saveTimes, type SaveSlot } f
 import { Slots, type Source } from '../core/slots'
 import { useFullscreen, useViewShortcuts, useWidescreen } from '../core/view'
 import { HostNet, type HostPeer } from '../net/host'
+import { KeyHelp, useHelpShortcut } from './KeyHelp'
 import { QrDialog } from './QrDialog'
 import { SlotPanel } from './SlotPanel'
 
@@ -23,11 +24,13 @@ export function HostView() {
   const [tick, setTick] = useState(0)
   const [fps, setFps] = useState(0)
   const [qrOpen, setQrOpen] = useState(false)
+  const [keysOpen, setKeysOpen] = useState(false)
   const [saves, setSaves] = useState<Partial<Record<SaveSlot, number>>>({})
   const [saveStatus, setSaveStatus] = useState('')
   const [wide, toggleWide] = useWidescreen()
   const fullscreen = useFullscreen(() => cabinet.current)
   useViewShortcuts({ fullscreen: fullscreen.toggle, widescreen: toggleWide })
+  useHelpShortcut(setKeysOpen)
 
   const slots = useRef(new Slots()).current
   const cabinet = useRef<HTMLElement>(null)
@@ -379,6 +382,9 @@ export function HostView() {
           <button className="ghost" onClick={() => setQrOpen(true)} disabled={!code}>
             QR code
           </button>
+          <button className="ghost" onClick={() => setKeysOpen(true)} title="Default keyboard keys (?)">
+            Keys <kbd>?</kbd>
+          </button>
           <span className="menu-sep" aria-hidden />
           <button
             className="ghost"
@@ -434,7 +440,10 @@ export function HostView() {
                   <span className="bios">{biosReady ? 'neogeo.zip stored ✓' : 'neogeo.zip optional'}</span>
                 </div>
                 {error && <p className="error">{error}</p>}
-                <p className="keys">P1 keyboard: arrows · Z X C V · A S · Space = coin · Enter = start</p>
+                <p className="keys">
+                  P1 keyboard: WASD to move · J K L U I O buttons · Space coin · Enter start · <kbd>?</kbd> for
+                  every player
+                </p>
               </div>
             </div>
           )}
@@ -530,6 +539,7 @@ export function HostView() {
         </aside>
       </main>
       {qrOpen && code && <QrDialog invite={invite} code={code} onClose={() => setQrOpen(false)} />}
+      {keysOpen && <KeyHelp onClose={() => setKeysOpen(false)} />}
     </div>
   )
 }
