@@ -2,6 +2,29 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — Why the phone showed a white square, and an immersive guest
+
+**The white square.** An iPhone guest had audio but a white video rectangle. The offer PeerJS built from
+`canvas.captureStream()` listed VP8, VP9, AV1 and H.264 (with rtx twins), and the answerer's order decides
+which codec Chromium actually encodes; iOS Safari's WebRTC decoder is the weakest link for VP9/AV1. A 4:3
+30 fps arcade feed needs neither. `src/net/sdp.ts` (`dropUnsafeVideoCodecs`) rewrites the video m-line to
+VP8 + H.264 plus the matching rtx payloads, drops the `a=rtpmap`/`a=rtcp-fb`/`a=fmtp` lines of everything
+it removed, and is passed as PeerJS's `sdpTransform`. Audio is never touched, and an SDP that is already
+VP8-only comes back byte-identical. Side effect worth keeping: guests now get one offer with both tracks,
+because a video-only call followed by a video+audio call renegotiates the same m-line and some Safari
+versions stop rendering the video after that. Verified cross-tab: the guest `<video>` reports 402x302 with
+`currentTime` advancing and the sender negotiating on the filtered offer. Not verified on Safari hardware.
+
+**Handheld is decided by screen size, not by the touch flag.** The old gate was `live && touch && compact`,
+so any phone that reported a fine pointer (iOS "Request Desktop Website", a small desktop window, or a
+tablet with a trackpad) kept the full chrome. Now `compact` is true for a coarse pointer OR width < 640 OR
+height < 500, `handheld` is `live && compact`, and the controls render when `live && (touch || compact)`.
+The toggle in the footer still works on a desktop window, where compact is false. At 390x844: header and
+footer `display:none`, stage 391x844 at 0,0, no page scroll, fixed pointer-transparent touch layer, 4:3 feed
+letterboxed with `object-fit: contain`. At 844x390 the same layout puts the d-pad and the A/B/C/D cluster
+over the side bars. Synthetic `pointerdown`/`pointerup` on the d-pad and A lit `.dpad-arrow.on` and
+`.touch-btn.on`, so the overlay emits the same mask path as before.
+
 ## 2026-10-19 — Input icons, thumb-sized touch controls, host save states, 30 fps stream
 
 **Input icons.** `InputKind` (`keyboard | gamepad | arcade | touch`) is now shared protocol. A guest sends

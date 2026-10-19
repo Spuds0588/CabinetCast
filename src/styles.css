@@ -510,52 +510,50 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .touch-btn:active { background: var(--amber); border-color: var(--amber); color: #1a1204; }
 .touch-btn.wide { width: auto; height: 44px; padding: 0 18px; border-radius: 10px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
 
-/* Sideways phone play: controls float over the cabinet art, video letterboxed behind them. */
-@media (orientation: landscape) and (max-height: 600px) {
-  .app.guest { max-width: none; margin: 0; padding: 0; gap: 0; height: 100dvh; overflow: hidden; }
+/* Handheld play: the guest gets the cabinet and nothing else, controls floating over the picture. */
+.app.guest.handheld { max-width: none; margin: 0; padding: 0; gap: 0; height: 100dvh; overflow: hidden; }
 
-  .app.guest:has(.touch) .topbar,
-  .app.guest:has(.touch) .guestfoot { display: none; }
+.app.guest.handheld .topbar,
+.app.guest.handheld .guestfoot { display: none; }
 
-  .app.guest:has(.touch) .stage {
-    height: 100dvh;
-    max-height: none;
-    aspect-ratio: auto;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  /* Keep the picture's shape on a sideways phone; the transparent controls sit over the side bars. */
-  .app.guest:has(.touch) .stage video { object-fit: contain; }
-
-  .app.guest:has(.touch) .stage .sound {
-    top: max(10px, env(safe-area-inset-top));
-    right: max(18px, env(safe-area-inset-right));
-    bottom: auto;
-    left: auto;
-    transform: none;
-    padding: 6px 11px;
-    font-size: 11px;
-  }
-
-  .touch {
-    position: fixed;
-    inset: 0;
-    z-index: 30;
-    padding: max(14px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
-      max(18px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
-    pointer-events: none;
-  }
-
-  .touch > * { pointer-events: auto; }
-
-  .touch .dpad { width: 158px; height: 158px; }
-  .touch .dpad-hub { width: 40px; height: 40px; }
-  .touch .face { grid-template-columns: repeat(2, 68px); gap: 14px; }
-  .touch .touch-btn { width: 68px; height: 68px; }
-  .touch .touch-btn.wide { width: auto; height: 42px; padding: 0 16px; }
+.app.guest.handheld .stage {
+  height: 100dvh;
+  max-height: none;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
+
+/* Keep the 4:3 picture's shape; the transparent controls sit over the letterbox bars. */
+.app.guest.handheld .stage video { object-fit: contain; }
+
+.app.guest.handheld .stage .sound {
+  top: max(10px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  bottom: auto;
+  left: auto;
+  transform: none;
+  padding: 6px 11px;
+  font-size: 11px;
+}
+
+.app.guest.handheld .touch {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  padding: max(14px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  pointer-events: none;
+}
+
+.app.guest.handheld .touch > * { pointer-events: auto; }
+
+.app.guest.handheld .touch .dpad { width: 158px; height: 158px; }
+.app.guest.handheld .touch .dpad-hub { width: 40px; height: 40px; }
+.app.guest.handheld .touch .face { grid-template-columns: repeat(2, 68px); gap: 14px; }
+.app.guest.handheld .touch .touch-btn { width: 68px; height: 68px; }
+.app.guest.handheld .touch .touch-btn.wide { width: auto; height: 42px; padding: 0 16px; }
 
 .live {
   display: inline-flex;

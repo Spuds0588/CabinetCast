@@ -44,6 +44,11 @@
       Atomiswave and not in FBNeo, so it paints "Romset is unknown" (2026-10-19)
 - [x] Host fps meter with a warning below 30 fps; captured video marked `contentHint = 'motion'` and the
       sender set to `maintain-framerate` so load costs sharpness, not frames (2026-10-19)
+- [x] Safari-safe video offer: `dropUnsafeVideoCodecs` strips VP9/AV1 and their rtx payloads from the
+      `sdpTransform`, leaving VP8 + H.264 for the phone; one offer carries audio and video (2026-10-19)
+- [x] Immersive handheld guest: a live feed on a coarse-pointer, <640px-wide or <500px-tall screen hides
+      the header and footer, fills the viewport and floats the touch pad over it; verified at 390x844 and
+      844x390 with a synthetic d-pad/A press (2026-10-19)
 
 ## Next
 - [ ] Prove multiplayer across real devices/networks (`npm run dev -- --host` for a LAN test or use the
@@ -56,6 +61,8 @@
 - [ ] Hear the audio: a guest receives a live audio track, but no sample has ever been measured (analyser
       peak 0.0 under a gesture-less scripted drop, which is inconclusive)
 - [ ] 8 player ports: needs an input path other than per-player keyboard binds (see agents.md)
+- [ ] Confirm the white-square fix on a real iPhone: codec filtering is verified on the offer and the feed
+      renders in Chrome, but no Safari hardware was available to retest the decode path
 - [ ] Try the touch overlay on real iOS/Android hardware (pointer capture, audio unlock, safe-area insets)
 - [ ] Confirm the 30 fps cap end to end with a foreground host and a second machine; the preview browser
       throttles the background host, so only the track settings and sender parameters were verified

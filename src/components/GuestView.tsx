@@ -22,6 +22,8 @@ export function GuestView({ code }: { code: string }) {
   const [sound, setSound] = useState(false)
   const [touch, setTouch] = useState(() => matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)
   const [ownKind, setOwnKind] = useState<InputKind>('keyboard')
+  // Phones and small windows get the handheld layout: game only, controls over it, no chrome.
+  const [compact, setCompact] = useState(() => matchMedia('(pointer: coarse)').matches || innerWidth < 640 || innerHeight < 500)
   const [wide, toggleWide] = useWidescreen()
   const fullscreen = useFullscreen(() => stage.current)
   useViewShortcuts({ fullscreen: fullscreen.toggle, widescreen: toggleWide })
@@ -52,8 +54,10 @@ export function GuestView({ code }: { code: string }) {
   }, [stream])
 
   useEffect(() => {
-    if (video.current) video.current.muted = !sound
-  }, [sound])
+    const update = () => setCompact(matchMedia('(pointer: coarse)').matches || innerWidth < 640 || innerHeight < 500)
+    addEventListener('resize', update)
+    return () => removeEventListener('resize', update)
+  }, [])
 
   useEffect(() => {
     const keys = createKeyboard()
@@ -81,14 +85,14 @@ export function GuestView({ code }: { code: string }) {
   useEffect(() => {
     const report = () => {
       const pad = [...(navigator.getGamepads?.() ?? [])].find((candidate): candidate is Gamepad => Boolean(candidate))
-      const kind: InputKind = pad ? padKind(pad) : touch ? 'touch' : 'keyboard'
+      const kind: InputKind = pad ? padKind(pad) : touch || compact ? 'touch' : 'keyboard'
       setOwnKind(kind)
       net.current?.sendSource(kind)
     }
     report()
     const timer = setInterval(report, 1500)
     return () => clearInterval(timer)
-  }, [touch])
+  }, [touch, compact])
 
   const enableSound = () => {
     setSound(true)
@@ -96,6 +100,9 @@ export function GuestView({ code }: { code: string }) {
   }
 
   const live = status === 'connected' && Boolean(stream)
+  // A live feed on a phone-sized screen gets the cabinet and nothing else; the toggle only matters on desktop.
+  const handheld = live && compact
+  const showTouch = live && (touch || compact)
 
   // Never leave a held touch button latched when the overlay is hidden or the feed stops.
   useEffect(() => {
@@ -109,7 +116,7 @@ export function GuestView({ code }: { code: string }) {
     })
 
   return (
-    <div className="app guest">
+    <div className={handheld ? 'app guest handheld' : 'app guest'}>
       <header className="topbar">
         <div className="brand">
           <span className="lamp" />
@@ -126,7 +133,7 @@ export function GuestView({ code }: { code: string }) {
       </header>
 
       <div ref={stage} className={wide ? 'stage wide' : 'stage'}>
-        <video ref={video} autoPlay playsInline />
+        <video ref={video} autoPlay playsInline muted={!sound} />
 
         {!stream && (
           <div className="gate">
@@ -149,7 +156,7 @@ export function GuestView({ code }: { code: string }) {
         )}
       </div>
 
-      {live && touch && <TouchControls onChange={(mask) => (touchMask.current = mask)} />}
+      {showTouch && <TouchControls onChange={(mask) => (touchMask.current = mask)} />}
 
       <footer className="guestfoot">
         <span className="tag">

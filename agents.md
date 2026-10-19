@@ -63,6 +63,17 @@ hosted on GitHub Pages. Tauri packaging is deferred.
 - **Stream fps is one constant.** `STREAM_FPS` in protocol feeds both `captureStream()` and the sender's
   `maxFramerate`. Input is still injected every host rAF, so lowering it does not add input latency; it
   trades video smoothness for encode/decode and bitrate. Do not claim it makes input faster.
+- **Safari decodes less than Chromium offers.** A raw `peer.call(id, stream)` advertises VP8, VP9, AV1 and
+  H.264; the answerer's order picks the encoder, and iOS Safari rendered a white rectangle instead of VP9/AV1
+  frames. Every host call goes through `dropUnsafeVideoCodecs` in `src/net/sdp.ts` as the `sdpTransform`, so
+  the offer only carries VP8 + H.264 (plus their rtx). Keep codec policy there; never hand a raw stream to
+  `peer.call`. One call must carry audio and video together — a video-only call followed by a video+audio
+  call renegotiates the same m-line and some Safari versions never paint the video after that.
+- **Handheld guest mode is a size decision, not a touch decision.** `compact` is a coarse pointer, or width
+  < 640, or height < 500; `handheld` is `live && compact` and hides the header, footer and stage frame so the
+  feed fills the viewport with the controls floating over it. Gating it on the touch flag left phones with
+  desktop-mode pointers stuck in the full UI. Do not add chrome back inside `.handheld`; the only overlays
+  allowed are the sound prompt and the touch pad.
 - **View shortcuts must not collide with player keys.** `Shift+F` / `Shift+W` live in `src/core/view.ts` and
   run in the capture phase with `stopImmediatePropagation`, because plain `F` is P2's right arrow. Never add
   a plain-letter UI shortcut: all free letters are one gamepad remap away from being a player key.
@@ -100,9 +111,9 @@ hosted on GitHub Pages. Tauri packaging is deferred.
 - Save states: save, change the screen, load, and compare browser screenshots (canvas readback is black).
   IndexedDB `cabinet_saves` lists the blobs and their timestamps. Auto-resume is visible as a status line in
   the Saves panel after re-dropping the same ROM.
-- Touch overlay: it needs a live stream and controls switched on (desktop pointers default them off). The
-  landscape rule is `orientation: landscape` plus `max-height: 600px`, so resizing the preview to 844x390
-  shows the overlay; the host tab stays the video source. Synthetic `PointerEvent`s (`pointerdown`/`pointerup`
+- Touch overlay: it needs a live stream. Portrait 390x844 and landscape 844x390 both switch to `.handheld`
+  (width < 640, height < 500), so the preview browser can show it without device emulation; the host tab
+  stays the video source. Synthetic `PointerEvent`s (`pointerdown`/`pointerup`
   with `pointerType: 'touch'`) drive the same handlers; pointer capture throws for a fake `pointerId` and is
   already caught.
 

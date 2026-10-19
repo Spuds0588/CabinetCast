@@ -1,5 +1,6 @@
 import Peer, { type DataConnection, type MediaConnection } from 'peerjs'
 import { ENDPOINT, randomCode, STREAM_FPS, type GuestMessage, type HostMessage, type InputKind } from '../core/protocol'
+import { dropUnsafeVideoCodecs } from './sdp'
 
 const ICE = {
   iceServers: [
@@ -114,7 +115,8 @@ export class HostNet {
   private callGuest(id: string) {
     if (!this.stream || this.callSignatures.get(id) === this.streamSignature) return
     this.calls.get(id)?.close()
-    const call = this.peer.call(id, this.stream)
+    // One offer with both tracks, with Safari-unsafe codecs removed.
+    const call = this.peer.call(id, this.stream, { sdpTransform: dropUnsafeVideoCodecs })
     if (!call) return
     // Chrome's default encoder policy trades frame rate for sharpness; a game wants the frames.
     for (const sender of call.peerConnection.getSenders()) {

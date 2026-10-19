@@ -233,9 +233,19 @@ export function HostView() {
       setRom(next.romName)
       setFps(0)
       setStatus('running')
-      host.current?.setStream(next.getStream())
-      // Audio destinations can be attached slightly after the core boots.
-      setTimeout(() => host.current?.setStream(next.getStream()), 1500)
+      // Audio destinations attach slightly after the core boots. Publish once, after they do, so a guest
+      // never gets a video-only call replaced by a second call (iOS Safari leaves that second one blank).
+      const started = performance.now()
+      const publish = () => {
+        if (session.current !== next) return
+        const stream = next.getStream()
+        if (!stream.getAudioTracks().length && performance.now() - started < 3000) {
+          setTimeout(publish, 120)
+          return
+        }
+        host.current?.setStream(stream)
+      }
+      publish()
 
       void refreshSaves(romKey(file))
       // Drop the same ROM again and it resumes where the last session left off.
