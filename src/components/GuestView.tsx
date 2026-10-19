@@ -119,7 +119,7 @@ export function GuestView({ code }: { code: string }) {
 
       <footer className="guestfoot">
         <span className="tag">{port === -1 ? 'Spectator' : `Player ${port + 1}`}</span>
-        <span className="muted small">Arrows or WASD · Z X C V buttons · Space coin · Enter start · any gamepad</span>
+        <span className="muted small">Arrows · Z X C V · A S buttons · Space coin · Enter start · any gamepad</span>
       </footer>
     </div>
   )

@@ -24,6 +24,10 @@ hosted on GitHub Pages. Tauri packaging is deferred.
 - **Per-port input is a keyboard-offset trick.** Nostalgist's `pressDown` fires a synthetic keyboard event
   for the key bound to `input_playerN_<button>` in `retroarch.cfg`. That means:
   - every port needs its own unique key per action (see `PORT_KEYS` in `src/core/protocol.ts`),
+  - `PORT_KEYS` is the single contract: `PORT_KEY_CONFIG` (the core's binds) and `KEY_BITS` (the readers'
+    key tables) are both derived from it. `createKeyboard(port)` reads only that port's keys, so a
+    "Local keyboard" slot can never replay another port's input. No alias keys: WASD collides with
+    P2's KeyD, which is why they are gone,
   - RetroArch only ships keyboard binds for players 1–4, so **MPV is 4 ports**, extra peers spectate,
   - hotkeys are set to `nul` so a synthetic player key cannot open a menu or quit the game,
   - the canvas is blurred at launch so physical keys never reach the core natively; all input is injected.
@@ -35,9 +39,14 @@ hosted on GitHub Pages. Tauri packaging is deferred.
 
 ## Testing
 - `npm run typecheck` and `npm run build` must pass before a commit.
-- Legally free FBNeo romsets for smoke tests live in `public/testroms/` (gitignored): `gridlee.zip`,
-  `robby.zip`, `teetert.zip` from mamedev.org. `gridlee` is in the FBNeo DAT but this core build reports
-  "Romset is unknown" for it, so use `robby.zip` (known good).
+- Legally free FBNeo romsets for smoke tests live in the gitignored `testroms/` folder, served in dev only
+  by the `testRoms` middleware in `vite.config.ts` (`/testroms/robby.zip`) — never from `public/`, so a
+  production build cannot ship them: `gridlee.zip`, `robby.zip`, `teetert.zip` from mamedev.org.
+  `gridlee` is in the FBNeo DAT but this core build reports "Romset is unknown" for it, so use `robby.zip`
+  (known good).
+- To load a ROM headlessly, fetch `/testroms/robby.zip` in the page, wrap it in a `File` and dispatch a
+  `drag`+`drop` with a `DataTransfer` on `.cabinet`. The drop is not a user gesture, so Chrome will not
+  start the emulator's AudioContext during such a run: silence there proves nothing about audio.
 - Cross-browser guest test: open `/?room=CODE` in a second tab. Expect `[Cabinet:NetGuest] Connected`,
   `Received host stream (audio+video)`, and a live `<video>`.
 

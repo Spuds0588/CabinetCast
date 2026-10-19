@@ -8,7 +8,7 @@ Built for shared-screen arcade games, the ones where everybody plays on the same
 ## Play
 
 - **Host:** https://spuds0588.github.io/CabinetCast/ — drop an arcade `.zip`, share the invite link.
-- **Guest:** open the invite link. Arrows/WASD, `Z X C V`, `A S`, `Space` coin, `Enter` start, or any gamepad.
+- **Guest:** open the invite link. Arrows, `Z X C V`, `A S` buttons, `Space` coin, `Enter` start, or any gamepad.
 
 Host keyboard is player 1 by default; each guest takes the next free port. Use the slot dropdowns to move a
 guest, a gamepad, or the keyboard to any port, or to leave a port empty.

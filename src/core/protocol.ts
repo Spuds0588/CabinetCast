@@ -40,20 +40,28 @@ const pad = (up: string, down: string, left: string, right: string, a: string, b
   ({ up, down, left, right, a, b, x, y, l, r, select, start })
 
 /**
- * One unique keyboard key per action per port. Keys must never repeat across ports, otherwise one
- * port's synthetic keypress would drive another port. Hotkey-risky keys (f1, escape) are avoided.
- * Port 1's keys are also the physical keys guests use locally.
+ * One unique physical key (DOM `KeyboardEvent.code`) per action per port. Keys never repeat across
+ * ports, otherwise one port's keypress would drive another. Hotkey-risky keys (f1, escape) are avoided.
+ * This is the single contract: the input reader and the core's key bindings are both derived from it.
  */
 export const PORT_KEYS = [
-  pad('up', 'down', 'left', 'right', 'z', 'x', 'c', 'v', 'a', 's', 'space', 'enter'),
-  pad('e', 'd', 'q', 'f', 'y', 'u', 'i', 'o', 'p', 'h', 'j', 'k'),
-  pad('b', 'n', 'g', 't', 'l', 'm', 'comma', 'period', 'tab', 'backspace', 'insert', 'delete'),
-  pad('num8', 'num2', 'num4', 'num6', 'num7', 'num9', 'divide', 'multiply', 'subtract', 'add', 'num0', 'num5'),
+  pad('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyA', 'KeyS', 'Space', 'Enter'),
+  pad('KeyE', 'KeyD', 'KeyQ', 'KeyF', 'KeyY', 'KeyU', 'KeyI', 'KeyO', 'KeyP', 'KeyH', 'KeyJ', 'KeyK'),
+  pad('KeyB', 'KeyN', 'KeyG', 'KeyT', 'KeyL', 'KeyM', 'Comma', 'Period', 'Tab', 'Backspace', 'Insert', 'Delete'),
+  pad('Numpad8', 'Numpad2', 'Numpad4', 'Numpad6', 'Numpad7', 'Numpad9', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract', 'NumpadAdd', 'Numpad0', 'Numpad5'),
 ]
+
+/** DOM codes RetroArch spells differently in retroarch.cfg. Everything else is mechanical. */
+const RETRO_NAMES: Record<string, string> = {
+  ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  NumpadDivide: 'divide', NumpadMultiply: 'multiply', NumpadSubtract: 'subtract', NumpadAdd: 'add',
+}
+const retroName = (code: string) =>
+  RETRO_NAMES[code] ?? (code.startsWith('Numpad') ? `num${code.slice(-1)}` : code.replace(/^Key/, '').toLowerCase())
 
 /** retroarchConfig fragment that binds every port's 12 actions to its own keys. */
 export const PORT_KEY_CONFIG = Object.fromEntries(
-  PORT_KEYS.flatMap((keys, port) => Object.entries(keys).map(([action, key]) => [`input_player${port + 1}_${action}`, key])),
+  PORT_KEYS.flatMap((keys, port) => Object.entries(keys).map(([action, code]) => [`input_player${port + 1}_${action}`, retroName(code)])),
 )
 
 /** Hotkeys we disable so a synthetic player keypress can never open a menu or quit the game. */
@@ -74,28 +82,15 @@ export const NEUTRALIZED_HOTKEYS = {
   input_shader_prev: 'nul',
 }
 
-/** Physical keyboard -> bitmask, used by the host (port 1) and by every guest. */
-export const KEY_TO_BITS: Record<string, number> = {
-  ArrowUp: INPUT_BITS.UP,
-  ArrowDown: INPUT_BITS.DOWN,
-  ArrowLeft: INPUT_BITS.LEFT,
-  ArrowRight: INPUT_BITS.RIGHT,
-  KeyW: INPUT_BITS.UP,
-  KeyS: INPUT_BITS.DOWN,
-  KeyA: INPUT_BITS.LEFT,
-  KeyD: INPUT_BITS.RIGHT,
-  KeyZ: INPUT_BITS.BUTTON_1,
-  KeyX: INPUT_BITS.BUTTON_2,
-  KeyC: INPUT_BITS.BUTTON_3,
-  KeyV: INPUT_BITS.BUTTON_4,
-  KeyQ: INPUT_BITS.BUTTON_5,
-  KeyE: INPUT_BITS.BUTTON_6,
-  Space: INPUT_BITS.COIN,
-  ShiftLeft: INPUT_BITS.COIN,
-  Enter: INPUT_BITS.START,
-  Digit5: INPUT_BITS.COIN,
-  Digit1: INPUT_BITS.START,
-}
+const BIT_OF = Object.fromEntries(BIT_TO_JOYPAD.map(([bit, action]) => [action, bit]))
+
+/**
+ * Physical key -> bitmask, one table per port, derived from PORT_KEYS so no key can drive two ports.
+ * No alias keys: WASD would collide with P2's declared binds (KeyD is P2 down).
+ */
+export const KEY_BITS: Record<string, number>[] = PORT_KEYS.map((keys) =>
+  Object.fromEntries(Object.entries(keys).map(([action, code]) => [code, BIT_OF[action]])),
+)
 
 export const ENDPOINT = (code: string) => `cab-${code}`
 export const ROOM_CODE_ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz'

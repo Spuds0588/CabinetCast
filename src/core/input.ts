@@ -1,14 +1,15 @@
-import { INPUT_BITS, KEY_TO_BITS } from './protocol'
+import { INPUT_BITS, KEY_BITS } from './protocol'
 
 const DEADZONE = 0.4
 
-/** Physical keyboard -> bitmask. Ignored while typing in a field. */
-export function createKeyboard() {
+/** Physical keyboard for one port -> bitmask. Ignored while typing in a field. */
+export function createKeyboard(port = 0) {
+  const bits = KEY_BITS[port] ?? {}
   const held = new Set<string>()
   const ignored = (event: KeyboardEvent) =>
     event.target instanceof HTMLElement && /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)
   const down = (event: KeyboardEvent) => {
-    if (!KEY_TO_BITS[event.code] || event.repeat || ignored(event)) return
+    if (!bits[event.code] || event.repeat || ignored(event)) return
     held.add(event.code)
     event.preventDefault()
   }
@@ -18,7 +19,7 @@ export function createKeyboard() {
   addEventListener('keyup', up)
   addEventListener('blur', clear)
   return {
-    mask: () => [...held].reduce((mask, code) => mask | KEY_TO_BITS[code], 0),
+    mask: () => [...held].reduce((mask, code) => mask | bits[code], 0),
     dispose: () => {
       removeEventListener('keydown', down)
       removeEventListener('keyup', up)

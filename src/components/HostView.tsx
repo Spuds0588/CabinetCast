@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getBios, saveBios } from '../core/bios'
 import { launchArcade, type ArcadeSession } from '../core/emulator'
 import { createKeyboard, padMask } from '../core/input'
+import { PORT_KEYS } from '../core/protocol'
 import { Slots, type Source } from '../core/slots'
 import { HostNet, type HostPeer } from '../net/host'
 import { SlotPanel } from './SlotPanel'
@@ -21,15 +22,16 @@ export function HostView() {
   const slots = useRef(new Slots()).current
   const host = useRef<HostNet | null>(null)
   const session = useRef<ArcadeSession | null>(null)
-  const keyboard = useRef<ReturnType<typeof createKeyboard> | null>(null)
+  const keyboards = useRef<ReturnType<typeof createKeyboard>[]>([])
   const fileInput = useRef<HTMLInputElement>(null)
 
   const refresh = () => setTick((value) => value + 1)
 
   useEffect(() => {
     getBios().then((bios) => setBiosReady(Boolean(bios)))
-    const keys = createKeyboard()
-    keyboard.current = keys
+    // One reader per port: each keyboard slot only sees the keys PORT_KEYS declares for that port.
+    const keys = PORT_KEYS.map((_, port) => createKeyboard(port))
+    keyboards.current = keys
 
     let disposed = false
     HostNet.start({
@@ -64,7 +66,7 @@ export function HostView() {
 
     return () => {
       disposed = true
-      keys.dispose()
+      keys.forEach((reader) => reader.dispose())
       host.current?.destroy()
       host.current = null
     }
@@ -77,7 +79,7 @@ export function HostView() {
       const active = session.current
       if (active) {
         slots.sources.forEach((source, port) => {
-          if (source.kind === 'keyboard') slots.masks[port] = keyboard.current?.mask() ?? 0
+          if (source.kind === 'keyboard') slots.masks[port] = keyboards.current[port]?.mask() ?? 0
           if (source.kind === 'pad') {
             const pad = navigator.getGamepads()[source.index]
             slots.masks[port] = pad ? padMask(pad) : 0
