@@ -1,16 +1,15 @@
 import Peer, { type DataConnection, type MediaConnection } from 'peerjs'
 import {
   ENDPOINT,
+  FRAME_FPS,
+  FRAME_HEADER,
+  FRAME_QUALITY,
+  FRAME_TAG,
   randomCode,
-  STREAM_FPS,
-  type CodecPin,
   type GuestMessage,
   type HostMessage,
   type InputKind,
-  type SentHealth,
-  type VideoHealth,
 } from '../core/protocol'
-import { videoSdp } from './sdp'
 
 const ICE = {
   iceServers: [
@@ -19,15 +18,17 @@ const ICE = {
   ],
 }
 
+/** A guest's data channel stalls if we queue frames faster than the network drains them. */
+const MAX_BUFFERED = 512 * 1024
+/** The lowest JPEG quality the pump will fall back to while the channel is backed up. */
+const QUALITY_FLOOR = 0.5
+
 export interface HostPeer {
   id: string
   port: number
   source?: InputKind
-  /** What the guest's own video element reports. */
-  video?: VideoHealth
-  /** What this host is actually encoding and sending. */
-  sent?: SentHealth
-  pin?: CodecPin
+  /** Frames per second this host is actually pushing to that guest. */
+  frames?: number
 }
 
 export interface HostEvents {
@@ -46,14 +47,12 @@ export class HostNet {
   private readonly calls = new Map<string, MediaConnection>()
   private readonly ports = new Map<string, number>()
   private readonly sources = new Map<string, InputKind>()
-  private readonly health = new Map<string, VideoHealth>()
-  private readonly sent = new Map<string, SentHealth>()
-  private readonly pins = new Map<string, CodecPin>()
+  private readonly rates = new Map<string, number>()
+  private readonly pumps = new Map<string, number>()
   private readonly greeted = new Set<string>()
-  private readonly samplers = new Map<string, number>()
-  private stream: MediaStream | null = null
-  private streamSignature = ''
-  private callSignatures = new Map<string, string>()
+  private audio: MediaStream | null = null
+  private audioSignature = ''
+  private canvas: HTMLCanvasElement | null = null
   private opened!: Promise<void>
   private closed = false
 
@@ -100,8 +99,10 @@ export class HostNet {
       log(`Guest ${id} connected`)
       this.events.onJoin(id)
       this.roster()
-      // Give the guest's hello a moment to name its platform before the first offer is built.
-      if (this.stream) setTimeout(() => this.conns.has(id) && this.callGuest(id), 150)
+      // The call is audio only, so it can go out immediately; frames start as soon as the pump
+      // exists, and the guest simply ignores any that arrive before it has decoded one.
+      if (this.audio) this.callGuest(id)
+      this.startFrames(id)
     })
     conn.on('close', () => this.drop(id))
     conn.on('error', () => this.drop(id))
@@ -115,145 +116,115 @@ export class HostNet {
     try {
       const message = JSON.parse(data) as GuestMessage
       if (message.t === 'hello') {
-        this.greet(id, message.platform)
+        this.greet(id)
       } else if (message.t === 'source') {
         this.sources.set(id, message.kind)
         this.roster()
-      } else if (message.t === 'health') {
-        this.health.set(id, message.health)
-        this.roster()
-      } else if (message.t === 'retry') {
-        this.retry(id, message.pin)
       }
     } catch {
       /* ignore malformed control messages */
     }
   }
 
-  /**
-   * Start a guest on the codec its engine paints reliably: H.264 for Safari, VP8 for Chromium, which
-   * decodes VP8 on every Android device. A later retry always overrides this.
-   */
-  private greet(id: string, platform: 'apple' | 'other') {
+  private greet(id: string) {
     if (this.greeted.has(id)) return
     this.greeted.add(id)
-    const pin: CodecPin = platform === 'apple' ? 'auto' : 'vp8'
-    const changed = this.pins.get(id) !== pin
-    if (changed) this.pins.set(id, pin)
     this.roster()
-    if (!this.stream) return
-    // The connection's open handler may already have offered the stream before this guest named its
-    // platform, which pins every guest to 'auto' (H.264 first). Drop that call's signature so the
-    // offer below actually goes out with the right codec instead of being skipped as a duplicate.
-    if (changed) this.callSignatures.delete(id)
-    this.callGuest(id)
-  }
-
-  /**
-   * Re-offer the call pinned to one codec. A guest that hears audio but decodes no frames asks for this,
-   * so a device stuck on one decoder gets a second chance without the player reloading anything.
-   */
-  private retry(id: string, pin: CodecPin) {
-    if (!this.stream || this.closed) return
-    this.pins.set(id, pin)
-    this.callSignatures.delete(id)
-    this.sent.delete(id)
-    log(`Guest ${id.slice(0, 4)} asked for ${pin} video; re-offering`)
-    this.callGuest(id)
-    this.roster()
+    if (this.audio) this.callGuest(id)
+    this.startFrames(id)
   }
 
   private drop(id: string) {
     if (!this.conns.delete(id)) return
     log(`Guest ${id} disconnected`)
+    this.stopFrames(id)
     this.calls.get(id)?.close()
     this.calls.delete(id)
-    this.callSignatures.delete(id)
     this.ports.delete(id)
     this.sources.delete(id)
-    this.health.delete(id)
-    this.sent.delete(id)
-    this.pins.delete(id)
+    this.rates.delete(id)
     this.greeted.delete(id)
-    this.stopSampler(id)
     this.events.onLeave(id)
     this.roster()
   }
 
-  private stopSampler(id: string) {
-    const timer = this.samplers.get(id)
-    if (timer !== undefined) clearInterval(timer)
-    this.samplers.delete(id)
+  /**
+   * Push the relay canvas to one guest as JPEG frames. This replaces the video track entirely: the
+   * guest paints decoded bitmaps into a 2D canvas, so no device has to negotiate a decoder, and a
+   * frame that cannot be delivered is replaced by the next one instead of waiting in a jitter buffer.
+   */
+  private startFrames(id: string) {
+    this.stopFrames(id)
+    const canvas = this.canvas
+    if (!canvas) return
+    let busy = false
+    let sent = 0
+    let sampled = performance.now()
+    // PeerJS gives an unordered channel but still retransmits, so a congested link shows up as a
+    // growing buffer. Hold the frame, and trade quality before resolution when that happens.
+    let quality = FRAME_QUALITY
+    let pressure = 0
+
+    const tick = async () => {
+      const conn = this.conns.get(id)
+      if (busy || !conn?.open || this.closed) return
+      const channel = (conn as unknown as { dataChannel?: RTCDataChannel }).dataChannel
+      if (channel && channel.bufferedAmount > MAX_BUFFERED) {
+        pressure = Math.min(pressure + 1, 6)
+        if (pressure >= 3) quality = QUALITY_FLOOR
+        return
+      }
+      if (pressure > 0) {
+        pressure -= 1
+        if (pressure === 0) quality = FRAME_QUALITY
+      }
+      busy = true
+      try {
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
+        if (!blob || !this.conns.has(id)) return
+        const frame = new Uint8Array(FRAME_HEADER + blob.size)
+        frame[0] = FRAME_TAG
+        new DataView(frame.buffer).setFloat64(1, Date.now(), true)
+        frame.set(new Uint8Array(await blob.arrayBuffer()), FRAME_HEADER)
+        conn.send(frame)
+        sent += 1
+        const now = performance.now()
+        if (now - sampled >= 1000) {
+          this.rates.set(id, Math.round((sent * 1000) / (now - sampled)))
+          sent = 0
+          sampled = now
+          this.roster()
+        }
+      } catch {
+        /* one dropped frame is not worth stopping the stream over */
+      } finally {
+        busy = false
+      }
+    }
+
+    this.pumps.set(
+      id,
+      window.setInterval(() => void tick(), 1000 / FRAME_FPS),
+    )
   }
 
-  /** Track what this host encodes for a guest. An idle sender and an idle decoder need different fixes. */
-  private watch(id: string, pc: RTCPeerConnection) {
-    this.stopSampler(id)
-    const sample = () => {
-      void pc
-        .getStats()
-        .then((report) => {
-          for (const stat of report.values()) {
-            if (stat.type !== 'outbound-rtp' || stat.kind !== 'video') continue
-            const codec = stat.codecId ? report.get(stat.codecId) : undefined
-            const mime = (codec as { mimeType?: string } | undefined)?.mimeType ?? '—'
-            const next: SentHealth = {
-              codec: mime,
-              fps: Math.round((stat as { framesPerSecond?: number }).framesPerSecond ?? 0),
-              frames: (stat as { framesEncoded?: number }).framesEncoded ?? 0,
-              limitation: (stat as { qualityLimitationReason?: string }).qualityLimitationReason ?? '—',
-            }
-            const previous = this.sent.get(id)
-            this.sent.set(id, next)
-            // The negotiated codec is the first thing to check when a guest has sound but no picture.
-            if (!previous || previous.codec !== next.codec) log(`Guest ${id.slice(0, 4)} video codec: ${next.codec}`)
-            if (next.limitation !== 'none') log(`Guest ${id.slice(0, 4)} video limitation: ${next.limitation}`)
-            this.roster()
-            return
-          }
-        })
-        .catch(() => undefined)
-    }
-    sample()
-    this.samplers.set(id, window.setInterval(sample, 1000))
+  private stopFrames(id: string) {
+    const timer = this.pumps.get(id)
+    if (timer !== undefined) clearInterval(timer)
+    this.pumps.delete(id)
+    this.rates.delete(id)
   }
 
   private callGuest(id: string) {
-    if (!this.stream || this.callSignatures.get(id) === this.streamSignature) return
-    this.calls.get(id)?.close()
-    this.stopSampler(id)
-    const pin = this.pins.get(id) ?? 'auto'
-    // One offer with both tracks, with the codecs the guest's engine is known to choke on removed.
-    const call = this.peer.call(id, this.stream, { sdpTransform: (sdp: string) => videoSdp(sdp, pin) })
+    if (!this.audio || this.calls.has(id)) return
+    const call = this.peer.call(id, this.audio)
     if (!call) return
-    const pc = call.peerConnection
-    pc.addEventListener('connectionstatechange', () => {
-      if (pc.connectionState === 'connected') this.watch(id, pc)
-    })
-    // A re-offer keeps the peer, but Chrome's default encoder policy trades frame rate for sharpness;
-    // a game wants the frames.
-    for (const sender of pc.getSenders()) {
-      if (sender.track?.kind !== 'video') continue
-      try {
-        const params = sender.getParameters()
-        params.degradationPreference = 'maintain-framerate'
-        params.encodings = params.encodings.map((encoding) => ({ ...encoding, maxFramerate: STREAM_FPS }))
-        sender.setParameters(params).catch((error) => log(`Encoder tuning skipped: ${String(error)}`))
-      } catch {
-        /* tuning is best effort; never stop a call over it */
-      }
-    }
-    this.send(id, { t: 'codec', pin })
-    this.callSignatures.set(id, this.streamSignature)
     this.calls.set(id, call)
-    // A replaced call closes after its replacement is already registered; never let it clear the new one.
     call.on('close', () => {
       if (this.calls.get(id) !== call) return
       this.calls.delete(id)
-      this.callSignatures.delete(id)
-      this.stopSampler(id)
     })
-    call.on('error', (error) => log(`Call to ${id} failed: ${error.type}`))
+    call.on('error', (error) => log(`Audio call to ${id} failed: ${error.type}`))
   }
 
   private send(id: string, message: HostMessage) {
@@ -267,14 +238,22 @@ export class HostNet {
     this.roster()
   }
 
-  /** Broadcast an emulator stream to everyone connected, and to later arrivals. */
-  setStream(stream: MediaStream) {
+  /** Sound over a media call. Video never touches the media pipeline any more. */
+  setAudio(stream: MediaStream) {
     const signature = stream.getTracks().map((track) => track.id).join()
-    if (signature === this.streamSignature) return
-    this.streamSignature = signature
-    this.stream = stream
-    log(`Broadcasting AV stream to ${this.conns.size} peer(s) (${stream.getTracks().map((track) => track.kind).join('+')})`)
+    if (signature === this.audioSignature) return
+    this.audioSignature = signature
+    this.audio = stream
+    log(`Broadcasting audio to ${this.conns.size} peer(s) (${stream.getTracks().length} track(s))`)
+    for (const call of this.calls.values()) call.close()
+    this.calls.clear()
     for (const id of this.conns.keys()) this.callGuest(id)
+  }
+
+  /** The relay the frame pump encodes. Setting it starts pumps for guests already connected. */
+  setCanvas(canvas: HTMLCanvasElement) {
+    this.canvas = canvas
+    for (const id of this.conns.keys()) this.startFrames(id)
   }
 
   roster() {
@@ -283,16 +262,14 @@ export class HostNet {
         id,
         port: this.ports.get(id) ?? -1,
         source: this.sources.get(id),
-        video: this.health.get(id),
-        sent: this.sent.get(id),
-        pin: this.pins.get(id) ?? 'auto',
+        frames: this.rates.get(id),
       })),
     )
   }
 
   destroy() {
     this.closed = true
-    for (const id of this.samplers.keys()) this.stopSampler(id)
+    for (const id of this.pumps.keys()) this.stopFrames(id)
     for (const call of this.calls.values()) call.close()
     for (const conn of this.conns.values()) conn.close()
     this.peer.destroy()

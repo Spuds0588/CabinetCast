@@ -35,10 +35,19 @@ export const BIT_TO_JOYPAD: [number, string][] = [
 export const PORTS = 4
 
 /**
- * Frames per second sent to guests. The core still runs at 60 and input is per-frame, but halving the
- * captured frames halves encode and decode work and the bitrate the network has to carry.
+ * Frames per second pushed to guests over the data channel. The core still runs at 60 and input is
+ * per-frame; this is only how often a picture is captured, encoded and sent.
  */
-export const STREAM_FPS = 30
+export const FRAME_FPS = 30
+
+/** JPEG quality for those frames. At 384x288 this is sharp and roughly 15-25 KB a frame. */
+export const FRAME_QUALITY = 0.72
+
+/** First byte of a binary host -> guest message that carries one picture frame. */
+export const FRAME_TAG = 0xca
+
+/** Tag (1 byte) + capture time as a float64 in epoch milliseconds (8 bytes). */
+export const FRAME_HEADER = 9
 
 /** Keys are listed in player order (B1..B6 = A..F), then mapped onto RetroArch's joypad names. */
 const pad = (up: string, down: string, left: string, right: string, b1: string, b2: string, b3: string, b4: string, b5: string, b6: string, select: string, start: string) =>
@@ -114,45 +123,9 @@ export const randomCode = (length = 5) =>
 /** What a player is holding. Guests report theirs; the host derives it for local sources. */
 export type InputKind = 'keyboard' | 'gamepad' | 'arcade' | 'touch'
 
-/**
- * Which video codec a call is pinned to. 'auto' keeps the normal offer (H.264 first, VP8 fallback);
- * the other two strip the offer down to one codec so a device that cannot decode one can try the other.
- */
-export type CodecPin = 'auto' | 'vp8' | 'h264'
-
-/** What a guest's video element is actually doing. Sent over the data channel so the host can see it. */
-export interface VideoHealth {
-  /** Negotiated video codec, e.g. `video/H264`; `—` until the first frame is described. */
-  codec: string
-  width: number
-  height: number
-  /** Frames decoded per second in the last second. */
-  fps: number
-  /** Total frames decoded since the call started. Zero means nothing reached the decoder. */
-  frames: number
-  /** Audio bytes received. Rising while `frames` stays zero points at video, not the connection. */
-  audio: number
-  /** The `<video>` element: playing, waiting, paused or error. */
-  element: string
-  pin: CodecPin
-}
-
-/** Host-side encoder health, so a silent guest can be split into "not sent" and "not decoded". */
-export interface SentHealth {
-  codec: string
-  fps: number
-  frames: number
-  limitation: string
-}
-
-export type HostMessage =
-  | { t: 'slot'; port: number; spectator: boolean }
-  | { t: 'codec'; pin: CodecPin }
+export type HostMessage = { t: 'slot'; port: number; spectator: boolean }
 
 export type GuestMessage =
   /** Sent the moment the data channel opens, before any call is offered. */
   | { t: 'hello'; platform: 'apple' | 'other' }
   | { t: 'source'; kind: InputKind }
-  | { t: 'health'; health: VideoHealth }
-  /** Ask the host to re-offer the call, pinned to one codec. */
-  | { t: 'retry'; pin: CodecPin }

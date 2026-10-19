@@ -508,13 +508,13 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.9);
 }
 
-/* No image-rendering/pixelated here: on Android Chrome it can knock a decoded WebRTC frame off the
-   compositor path, and the picture comes out as a plain white rectangle. */
-.stage video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+/* The picture is a 384x288 canvas painted from JPEG frames; the <video> element only carries sound. */
+.stage .frames { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; image-rendering: auto; }
+.stage video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* The host's 4:3 stream, stretched to 16:9 on this screen only. */
 .stage.wide { aspect-ratio: 16 / 9; }
-.stage.wide video { object-fit: fill; }
+.stage.wide .frames { object-fit: fill; }
 .stage:fullscreen { border: 0; border-radius: 0; max-height: none; }
 
 /* Shown only while the stream is connected and the guest's decoder has not produced a frame. */
@@ -663,7 +663,7 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 }
 
 /* Keep the 4:3 picture's shape; the transparent controls sit over the letterbox bars. */
-.app.guest.handheld .stage video { object-fit: contain; }
+.app.guest.handheld .stage .frames { object-fit: contain; }
 
 .app.guest.handheld .stage .sound {
   top: max(10px, env(safe-area-inset-top));

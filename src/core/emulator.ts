@@ -1,11 +1,13 @@
 import { Nostalgist } from 'nostalgist'
 import { audioTracks, installAudioTap } from './audioTap'
-import { BIT_TO_JOYPAD, NEUTRALIZED_HOTKEYS, PORT_KEY_CONFIG, PORTS, STREAM_FPS } from './protocol'
+import { BIT_TO_JOYPAD, NEUTRALIZED_HOTKEYS, PORT_KEY_CONFIG, PORTS } from './protocol'
 
 export interface ArcadeSession {
   romName: string
-  /** Video from the emulator canvas plus audio tapped from its AudioContext. */
-  getStream(): MediaStream
+  /** Audio only: pictures now travel as frames over the data channel, the call carries sound. */
+  getAudio(): MediaStream
+  /** The fixed 384x288 relay the frame pump encodes. */
+  getCanvas(): HTMLCanvasElement
   /** Apply one port's 12-bit input mask, injecting only the bits that changed. */
   inject(port: number, mask: number): void
   /** Snapshot the whole core, including SRAM and the current frame. */
@@ -69,18 +71,15 @@ export async function launchArcade(file: File, bios?: Blob): Promise<ArcadeSessi
   }
   relayFrame = requestAnimationFrame(copy)
 
-  const videoTrack = relay.captureStream(STREAM_FPS).getVideoTracks()[0]
-  // Tell the encoder this is motion, not a document: keep the frames when it must trade something.
-  videoTrack.contentHint = 'motion'
-  const getStream = () => new MediaStream([videoTrack, ...audioTracks()])
+  const getAudio = () => new MediaStream(audioTracks())
   const lastMasks = new Array<number>(PORTS).fill(0)
 
-  const settings = videoTrack.getSettings()
-  log(`Running: ${file.name} (canvas ${element.width}x${element.height} → relay ${settings.width}x${settings.height}, capture ${settings.frameRate ?? STREAM_FPS} fps)`)
+  log(`Running: ${file.name} (canvas ${element.width}x${element.height} → relay ${relay.width}x${relay.height})`)
 
   return {
     romName: file.name,
-    getStream,
+    getAudio,
+    getCanvas: () => relay,
     async saveState() {
       const { state } = await emulator.saveState()
       return state

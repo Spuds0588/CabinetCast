@@ -1,12 +1,5 @@
 import Peer, { type DataConnection, type MediaConnection, type PeerError } from 'peerjs'
-import {
-  ENDPOINT,
-  type CodecPin,
-  type GuestMessage,
-  type HostMessage,
-  type InputKind,
-  type VideoHealth,
-} from '../core/protocol'
+import { ENDPOINT, FRAME_HEADER, FRAME_TAG, type GuestMessage, type HostMessage, type InputKind } from '../core/protocol'
 
 const ICE = {
   iceServers: [
@@ -19,12 +12,11 @@ export type GuestStatus = 'connecting' | 'waiting' | 'connected' | 'not-found' |
 
 export interface GuestEvents {
   onStatus(status: GuestStatus, detail?: string): void
-  onStream(stream: MediaStream): void
+  /** Sound only; pictures arrive through `onFrame`. */
+  onAudio(stream: MediaStream): void
   onSlot(port: number): void
-  /** Once a second: what the receiver is decoding, so a stalled picture can be diagnosed on screen. */
-  onHealth(health: VideoHealth): void
-  /** The `<video>` element's own state, folded into the health report. */
-  videoState(): string
+  /** One decoded picture, plus how long it took from capture on the host to a bitmap here. */
+  onFrame(bitmap: ImageBitmap, latency: number): void
 }
 
 const log = (message: string) => console.log(`[Cabinet:NetGuest] ${message}`)
@@ -36,10 +28,9 @@ export class GuestNet {
   private destroyed = false
   private source: InputKind | null = null
   private sentSource: InputKind | null = null
-  private pin: CodecPin = 'auto'
-  /** Set once this guest asks for a codec; from then on the local request wins over host confirmations. */
-  private requested: CodecPin | null = null
-  private sampler = 0
+  /** Newest frame waiting while the decoder is busy. Older ones are dropped, never queued. */
+  private pending: Uint8Array | null = null
+  private decoding = false
 
   constructor(private readonly code: string, private readonly events: GuestEvents) {
     this.peer = new Peer({ config: ICE })
@@ -52,7 +43,6 @@ export class GuestNet {
       conn.on('open', () => {
         log(`Connected to room "${code}"`)
         this.events.onStatus('connected')
-        // The first offer is built from this: Safari needs H.264 first, Chromium decodes VP8 everywhere.
         this.send({ t: 'hello', platform: /iPad|iPhone|iPod/.test(navigator.userAgent) ? 'apple' : 'other' })
         this.flushSource()
       })
@@ -60,20 +50,13 @@ export class GuestNet {
       conn.on('data', (data) => this.receive(data))
     })
 
-    // The host pushes the AV stream as a call; answer it so the tracks start flowing.
+    // The host still calls for the audio track; answer it, but there is no video to wait for.
     this.peer.on('call', (call) => {
       call.answer()
       this.call = call
-      call.on('stream', (stream) => {
-        log(`Received host stream (${stream.getTracks().map((track) => track.kind).join('+')})`)
-        this.events.onStream(stream)
-        this.watch(call.peerConnection)
-      })
-      // A re-offer replaces this call; its close must not stop the replacement's sampler.
+      call.on('stream', (stream) => this.events.onAudio(stream))
       call.on('close', () => {
-        if (this.call !== call) return
-        this.call = null
-        this.stopSampler()
+        if (this.call === call) this.call = null
       })
     })
 
@@ -85,15 +68,41 @@ export class GuestNet {
   }
 
   private receive(data: unknown) {
+    if (data instanceof Uint8Array) return this.queueFrame(data)
+    if (data instanceof ArrayBuffer) return this.queueFrame(new Uint8Array(data))
     if (typeof data !== 'string') return
     try {
       const message = JSON.parse(data) as HostMessage
       if (message.t === 'slot') this.events.onSlot(message.port)
-      // The host names the codec it offered, so the health readout shows what is really being decoded.
-      if (message.t === 'codec' && !this.requested) this.pin = message.pin
     } catch {
       /* ignore malformed control messages */
     }
+  }
+
+  /** Keep at most one frame in flight: a stale picture is worth less than the next one. */
+  private queueFrame(bytes: Uint8Array) {
+    if (bytes[0] !== FRAME_TAG) return
+    if (this.decoding) {
+      this.pending = bytes
+      return
+    }
+    void this.decode(bytes)
+  }
+
+  private async decode(bytes: Uint8Array) {
+    this.decoding = true
+    try {
+      const captured = new DataView(bytes.buffer, bytes.byteOffset + 1, 8).getFloat64(0, true)
+      const jpeg = bytes.subarray(FRAME_HEADER)
+      const bitmap = await createImageBitmap(new Blob([jpeg.slice().buffer], { type: 'image/jpeg' }))
+      if (!this.destroyed) this.events.onFrame(bitmap, Math.max(0, Date.now() - captured))
+    } catch {
+      /* a torn or undecodable frame is skipped; the next one arrives in ~33ms */
+    }
+    this.decoding = false
+    const next = this.pending
+    this.pending = null
+    if (next) void this.decode(next)
   }
 
   private send(message: GuestMessage) {
@@ -111,74 +120,14 @@ export class GuestNet {
     this.flushSource()
   }
 
-  /** Ask the host to re-offer pinned to one codec, e.g. after audio arrived but no picture. */
-  retryVideo(pin: CodecPin) {
-    this.pin = pin
-    this.requested = pin
-    this.send({ t: 'retry', pin })
-    log(`Asking the host for ${pin} video`)
-  }
-
   private flushSource() {
     if (!this.conn?.open || !this.source || this.source === this.sentSource) return
     this.sentSource = this.source
     this.send({ t: 'source', kind: this.source })
   }
 
-  private stopSampler() {
-    if (this.sampler) clearInterval(this.sampler)
-    this.sampler = 0
-  }
-
-  /**
-   * Read the receiver's own counters once a second. `framesDecoded` staying at zero while audio bytes
-   * climb is the signature of a decoder that never got a frame it could use, and it is invisible from
-   * the host's side of the call.
-   */
-  private watch(pc: RTCPeerConnection) {
-    this.stopSampler()
-    let lastFrames = 0
-    let lastAt = 0
-    const sample = () => {
-      void pc
-        .getStats()
-        .then((report) => {
-          let video: RTCInboundRtpStreamStats | undefined
-          let audio: RTCInboundRtpStreamStats | undefined
-          for (const stat of report.values()) {
-            if (stat.type !== 'inbound-rtp') continue
-            if (stat.kind === 'video') video = stat
-            if (stat.kind === 'audio') audio = stat
-          }
-          const codec = video?.codecId ? report.get(video.codecId) : undefined
-          const frames = video?.framesDecoded ?? 0
-          const now = performance.now()
-          const elapsed = lastAt ? (now - lastAt) / 1000 : 1
-          const fps = video?.framesPerSecond ?? (lastAt ? (frames - lastFrames) / elapsed : 0)
-          lastFrames = frames
-          lastAt = now
-          const health: VideoHealth = {
-            codec: (codec as { mimeType?: string } | undefined)?.mimeType ?? '—',
-            width: video?.frameWidth ?? 0,
-            height: video?.frameHeight ?? 0,
-            fps: Math.round(fps || 0),
-            frames,
-            audio: audio?.bytesReceived ?? 0,
-            element: this.events.videoState(),
-            pin: this.pin,
-          }
-          this.events.onHealth(health)
-          this.send({ t: 'health', health })
-        })
-        .catch(() => undefined)
-    }
-    sample()
-    this.sampler = window.setInterval(sample, 1000)
-  }
-
   destroy() {
     this.destroyed = true
-    this.stopSampler()
     this.call?.close()
     this.conn?.close()
     this.peer.destroy()

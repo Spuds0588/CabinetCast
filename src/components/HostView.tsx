@@ -107,7 +107,10 @@ export function HostView() {
         host.current = net
         setCode(net.code)
         setStatus('idle')
-        if (session.current) net.setStream(session.current.getStream())
+        if (session.current) {
+          net.setCanvas(session.current.getCanvas())
+          net.setAudio(session.current.getAudio())
+        }
       })
       .catch((cause: unknown) => {
         setStatus('error')
@@ -241,12 +244,13 @@ export function HostView() {
       const started = performance.now()
       const publish = () => {
         if (session.current !== next) return
-        const stream = next.getStream()
-        if (!stream.getAudioTracks().length && performance.now() - started < 3000) {
+        const audio = next.getAudio()
+        if (!audio.getAudioTracks().length && performance.now() - started < 3000) {
           setTimeout(publish, 120)
           return
         }
-        host.current?.setStream(stream)
+        host.current?.setCanvas(next.getCanvas())
+        host.current?.setAudio(audio)
       }
       publish()
 
