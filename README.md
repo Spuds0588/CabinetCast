@@ -18,9 +18,9 @@ Built for shared-screen arcade games, the ones where everybody plays on the same
 - **Couch player:** in the Invite panel pick **Controller only**, then open the link or QR on a phone. That
   page is the pad and nothing else: no picture, no sound, and the host does not encode frames for it. Use it
   when everyone is in the same room watching the cabinet.
-- **TV:** press **Cast** on the host bar. It opens the picture on a receiver or in a window that can be
-  dragged to a TV or mirrored with the browser's Cast menu. The receiver takes no player slot, and its sync is
-  best effort, so it trails the cabinet by the encode and network hop.
+- **TV:** put the tab on the TV with Chrome's Cast menu (**Cast tab**), then press `Shift+F` here. The TV
+  follows the tab into fullscreen and carries its sound; Chrome mirrors a tab at up to 720p. The **Cast**
+  button on the host bar shows those two steps, since only the browser can start a tab cast.
 
 Player 1 is the host keyboard; each guest or gamepad takes the next free port. The Players panel lists every
 detected input and lets you move a gamepad or guest to another port. The keyboard stays on player 1, because

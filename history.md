@@ -2,7 +2,30 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — Casting is Chrome's tab mirror, not a receiver page
+
+**The receiver page could not reach a Chromecast.** `?mode=cast` was an ordinary guest page: it needed a
+browser to open it. A Cast device runs a registered receiver app, not an arbitrary page, and the Web Sender
+SDK can launch a receiver app but cannot put Chrome into its "Cast tab" mirroring mode. The only device that
+could ever open that URL was a computer, which already has the browser's own Cast menu. The picture-only
+receiver was also the one guest that could not contribute input, so it needed a `cast` flag just to hand
+back the player port it was assigned on connect.
+
+**What the button does now.** Cast opens a two-step guide: Chrome's Cast menu, **Cast tab**, pick the TV;
+then go fullscreen in this tab. Mirroring captures what the tab paints, so the TV follows the Fullscreen API
+call, and tab audio goes with it. Chrome caps tab projection at 720p and the TV scales it. The order is in
+the dialog because fullscreen hides the toolbar the cast starts from.
+
+**Removed:** `CastView`, `startCast`/`canCast`, the `cast` field on the mode message, `HostEvents.onSpectate`
+and `HostNet.spectators`. They existed only to keep the receiver from holding a port. The controller-only pad
+is untouched.
+
+**Verified:** `npm run build` passes; the Cast button opens the guide, and Escape, the backdrop and Close all
+dismiss it; the guide's Fullscreen button closes it and enters fullscreen.
+
 ## 2026-10-19 — Phones as controllers, and a TV receiver for the cabinet
+
+**Superseded the same day:** the receiver page is gone, see the entry above. The pad notes still apply.
 
 **Two new guest roles reuse the input channel and the frame relay.** A couch player opens
 `?room=CODE&mode=pad` and gets only the touch pad. The pad guest sends `{t:'mode', video:false}` like any

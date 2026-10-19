@@ -152,4 +152,4 @@ export type GuestMessage =
   | { t: 'hello'; platform: 'apple' | 'other' }
   | { t: 'source'; kind: InputKind }
   /** A controller-only guest takes no frames, so the host can skip encoding for it entirely. */
-  | { t: 'mode'; video: boolean; cast?: boolean }
+  | { t: 'mode'; video: boolean }

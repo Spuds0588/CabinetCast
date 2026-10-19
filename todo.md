@@ -5,9 +5,9 @@
       keeps no frame pump for it; Invite offers Watch + play or Controller only and the QR follows (2026-10-19)
 - [x] Pad layout: always horizontal (portrait rotates the stage), buttons 104/92/82/72 px for 2/3/4/5–6,
       one row for 2–3, offset two rows for 4–6, coin and start bottom centre (2026-10-19)
-- [x] Cast button: `?mode=cast` receiver page with picture and sound, Presentation API tried first and a
-      popup otherwise; the receiver reports `cast:true` so the host gives back the port it auto-assigned and
-      the TV shows as a spectator (2026-10-19)
+- [x] Cast button opens a two-step guide for Chrome's tab mirroring (Cast tab, then fullscreen), because a
+      page cannot start a tab cast and a receiver page cannot run on a Chromecast. The first receiver-page
+      attempt was removed (2026-10-19)
 - [x] Vite + React + TypeScript + plain CSS (no Tailwind: zero extra deps), base `/CabinetCast/`
 - [x] FBNeo via Nostalgist, drag/drop `.zip`, launch timeout, real romset filename fix
 - [x] Canvas video + AudioContext tap → single `MediaStream`
@@ -127,9 +127,8 @@
   loses the saves, and they do not follow to another machine. Re-dropping a ROM always resumes the auto
   save; clear it from the Saves panel to start fresh.
 - Stream is 30 fps for everyone; there is no per-guest quality setting.
-- Casting has no shared clock: the TV paints the newest frame at its own pace, so it trails the cabinet by
-  the encode and network cost. On Chrome desktop the Cast button opens the receiver in a popup, because a
-  WebRTC page cannot be handed to a Chromecast receiver directly; moving it to the TV is the browser's
-  Cast/mirror menu. Audio may need one tap on the receiver before it plays.
+- Casting is Chrome's tab mirror, started from the browser's Cast menu: a page cannot trigger it, it is
+  capped at 720p, and it mirrors the whole tab. Go fullscreen for a clean cabinet; the TV follows the tab
+  and carries its audio.
 - Duplicate port ownership: `Slots.sources` and `HostNet.ports` both track which peer owns which port,
   so a remap needs a re-sync loop in `HostView`.
