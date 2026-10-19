@@ -2,6 +2,30 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — Players are tags, and adding one is the fallback
+
+**The roster was the tallest panel for the least information.** Four full-width port rows plus a separate
+detected-inputs list took about 300px to say "keyboard and three controllers". It is now one wrapped row of
+pills: port label in its arcade colour, device icon, name, a dot that lights while the player presses, and
+for guests the `↓n` delivery rate. Guests beyond the fourth port get a dashed "watching" pill instead of
+being invisible. The × on a keyboard or pad pill removes it; guests cannot be removed.
+
+**Adding a player is now a fallback.** `+ Player` sits in the panel heading and opens a chooser listing the
+keyboard (while P1 is free) and any detected pad with no port. Picking one assigns the lowest free port and
+closes the menu. Auto-assignment on gamepad connect and guest join is unchanged, so the common path never
+touches this. When all four ports are playing the button is disabled and its tooltip says how many
+controllers are waiting.
+
+**Verified:** `npm run build` passes with `pipefail`. A fake `navigator.getGamepads` entry auto-assigned to
+P2 and appeared as a yellow tag; removing it made it available in `+ Player` and re-adding put it back on
+P2. Removing the keyboard left the empty-state line, and `+ Player` re-added it on P1. Four guests plus a
+watcher rendered as four port-coloured tags and one dashed watcher tag with rates, at 780px and 390px (three
+lines, 89px tall, no horizontal overflow).
+
+**Testing note:** stubbing `navigator.getGamepads` before Nostalgist boots breaks the launch, because
+Nostalgist builds a `GamepadEvent` from the entry and a plain object fails the `Gamepad` conversion. Stub
+after the game is running.
+
 ## 2026-10-19 — Arcade primaries replace the orange
 
 **Black stays; the amber goes.** The palette is now a black cabinet with arcade button colours:

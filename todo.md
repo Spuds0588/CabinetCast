@@ -1,6 +1,9 @@
 # todo.md
 
 ## Done (MVP)
+- [x] Players panel collapsed to one tag per player (port colour, icon, name, live dot, guest rate) with a
+      `+ Player` chooser for the rare manual tie of a keyboard or unassigned pad; auto-assignment unchanged
+      (2026-10-19)
 - [x] Arcade palette: black base with yellow/red/blue/green button colours (plus pink/cyan for E/F), port
       colours, panel dots, coloured device icons and per-button colour on the touch pads; `--amber` and
       `--teal` removed (2026-10-19)

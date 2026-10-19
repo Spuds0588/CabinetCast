@@ -373,52 +373,80 @@ button.ghost { background: transparent; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; line-height: 1.45; margin: 8px 0 0; }
 
-/* Slot rows */
-.slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+/* Player tags: one pill per player, port colour and a dot that lights while they press. */
+.player-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 
-/* One arcade button colour per port: red, yellow, blue, green. */
-.slots > li:nth-child(1) { --port: var(--red); }
-.slots > li:nth-child(2) { --port: var(--yellow); }
-.slots > li:nth-child(3) { --port: var(--blue); }
-.slots > li:nth-child(4) { --port: var(--green); }
-
-.slot {
-  display: grid;
-  grid-template-columns: 34px 10px 18px minmax(0, 1fr) auto;
+.player-tag {
+  --port: var(--muted);
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border-radius: 8px;
-  background: #0e0e16;
-  border: 1px solid transparent;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 5px 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--port) 6%, #0e0e16);
+  font-size: 12px;
+  line-height: 1.3;
 }
 
-.slot.live { border-color: color-mix(in srgb, var(--port) 42%, transparent); }
+.player-tag.port-1 { --port: var(--red); }
+.player-tag.port-2 { --port: var(--yellow); }
+.player-tag.port-3 { --port: var(--blue); }
+.player-tag.port-4 { --port: var(--green); }
 
-.port { font-family: var(--mono); font-size: 12px; color: var(--port, var(--muted)); }
+.player-tag .dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--port);
+  opacity: 0.45;
+}
 
-.signal { width: 8px; height: 8px; border-radius: 50%; background: #2a2a3a; }
-.slot.live .signal { background: var(--port); box-shadow: 0 0 10px var(--port); }
+.player-tag.live { border-color: color-mix(in srgb, var(--port) 55%, transparent); }
+.player-tag.live .dot { opacity: 1; box-shadow: 0 0 8px var(--port); }
 
-.slot-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.slot-name.empty { color: var(--muted); }
+.host .player-tag > .input-icon { color: var(--port); }
+.player-tag .tag-port { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; font-weight: 600; color: var(--port); }
+.player-tag .tag-name { min-width: 0; max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-tag .tag-rate { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+.player-tag .tag-note { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+.player-tag .tag-x {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.player-tag .tag-x:hover:not(:disabled) { background: transparent; color: var(--text); }
+
+.player-tag.watcher { border-style: dashed; background: #0e0e16; }
+.host .player-tag.watcher > .input-icon { color: var(--muted); }
 
 button.icon { padding: 0 5px; border: 0; background: transparent; color: var(--muted); font-size: 18px; line-height: 1; }
 button.icon:hover:not(:disabled) { background: transparent; color: var(--text); }
 
-/* Detected inputs */
-.panel h2.sub { margin-top: 14px; }
-.inputs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.inputs li { display: flex; align-items: center; gap: 7px; min-height: 26px; font-size: 13px; }
 .mini { padding: 3px 8px; border-radius: 6px; font-size: 11px; line-height: 1.4; }
-.add-input { position: relative; margin-top: 10px; }
-.add-input > button { width: 100%; }
+
+/* Manual add: rare, so it sits in the heading and only offers free inputs. */
+.add-input { position: relative; margin-left: 8px; align-self: center; }
+.player-add { padding: 3px 9px; border-style: dashed; border-radius: 999px; background: transparent; color: var(--muted); font-size: 11px; }
+.player-add:hover:not(:disabled) { border-color: var(--yellow); color: var(--yellow); }
+
 .input-menu {
   position: absolute;
-  left: 0;
+  top: calc(100% + 6px);
   right: 0;
-  bottom: calc(100% + 6px);
   z-index: 5;
+  min-width: 210px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -445,8 +473,6 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .input-icon.arcade { color: var(--green); }
 .input-icon.touch { color: var(--pink); }
 .input-icon.guest { color: var(--cyan); }
-/* Port rows keep the icon muted so the port colour stays the loudest thing in the row. */
-.slot .input-icon { color: #9390aa; }
 .input-icon.empty { opacity: 0.45; }
 
 .tag {
@@ -636,9 +662,6 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 .video-note button { border-color: rgba(255, 210, 63, 0.45); color: var(--yellow); }
 
-.video-tags { display: inline-flex; gap: 4px; }
-.mini-tag { padding: 1px 5px; font-size: 9px; letter-spacing: 0.02em; }
-.tag.bad { color: var(--red); border-color: rgba(255, 71, 87, 0.45); }
 
 .sound {
   position: absolute;
