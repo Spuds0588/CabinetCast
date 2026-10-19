@@ -116,13 +116,13 @@ export function TouchControls({ onChange, buttons = 6, layout = 'overlay' }: Pro
       <div className={`touch touchpad ${sizeClass}`} aria-label="Touch controls">
         {dpad}
         <div className="pad-meta">
-          {button(INPUT_BITS.COIN, 'Coin', 'wide')}
-          {button(INPUT_BITS.START, 'Start', 'wide')}
+          {button(INPUT_BITS.COIN, 'Coin', 'wide coin')}
+          {button(INPUT_BITS.START, 'Start', 'wide start')}
         </div>
         <div className="pad-face">
           {rows.map((row, index) => (
             <div key={index} className={index === 0 ? 'pad-row' : 'pad-row offset'}>
-              {row.map((face) => button(face.bit, face.label))}
+              {row.map((face) => button(face.bit, face.label, `face-${face.area}`))}
             </div>
           ))}
         </div>
@@ -136,8 +136,8 @@ export function TouchControls({ onChange, buttons = 6, layout = 'overlay' }: Pro
 
       <div className="touch-right">
         <div className="touch-meta">
-          {button(INPUT_BITS.COIN, 'Coin', 'wide')}
-          {button(INPUT_BITS.START, 'Start', 'wide')}
+          {button(INPUT_BITS.COIN, 'Coin', 'wide coin')}
+          {button(INPUT_BITS.START, 'Start', 'wide start')}
         </div>
         {/* Four buttons keep the arcade diamond; any other count uses a plain grid whose column
             count follows the count, so a two-button pad does not reserve room for six. */}
@@ -149,7 +149,7 @@ export function TouchControls({ onChange, buttons = 6, layout = 'overlay' }: Pro
               : { gridTemplateColumns: `repeat(${Math.min(Math.max(buttons, 2), 3)}, var(--face-size))` }
           }
         >
-          {faces.map((face) => button(face.bit, face.label, '', face.area))}
+          {faces.map((face) => button(face.bit, face.label, `face-${face.area}`, face.area))}
         </div>
       </div>
     </div>

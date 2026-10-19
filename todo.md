@@ -1,6 +1,9 @@
 # todo.md
 
 ## Done (MVP)
+- [x] Arcade palette: black base with yellow/red/blue/green button colours (plus pink/cyan for E/F), port
+      colours, panel dots, coloured device icons and per-button colour on the touch pads; `--amber` and
+      `--teal` removed (2026-10-19)
 - [x] Wordmark removed from both headers and the tab title set to Arcade; host options live behind a
       hamburger (Copy link, QR, Keys, Widescreen, Fullscreen, Cast, Stop) that closes on a choice, an outside
       click or Escape (2026-10-19)

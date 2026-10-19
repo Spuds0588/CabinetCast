@@ -3,11 +3,15 @@
   --panel: #12121b;
   --panel-2: #191924;
   --line: #262636;
-  --text: #ece9f5;
+  --text: #f3effa;
   --muted: #8b8ba3;
-  --amber: #ffb02e;
-  --teal: #4ee1c1;
-  --red: #ff5c5c;
+  /* Arcade button primaries, with two playful extras for E and F. */
+  --yellow: #ffd23f;
+  --red: #ff4757;
+  --blue: #4c8dff;
+  --green: #35d07f;
+  --pink: #ff6bcb;
+  --cyan: #3fd8e8;
   --mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
   color-scheme: dark;
 }
@@ -19,8 +23,9 @@ html, body, #root { height: 100%; }
 body {
   margin: 0;
   background:
-    radial-gradient(1100px 620px at 50% -10%, rgba(255, 176, 46, 0.09), transparent 70%),
-    radial-gradient(700px 500px at 100% 100%, rgba(78, 225, 193, 0.06), transparent 70%),
+    radial-gradient(1100px 620px at 50% -10%, rgba(76, 141, 255, 0.11), transparent 70%),
+    radial-gradient(700px 500px at 100% 100%, rgba(255, 71, 87, 0.07), transparent 70%),
+    radial-gradient(600px 460px at 0% 100%, rgba(53, 208, 127, 0.05), transparent 70%),
     var(--bg);
   color: var(--text);
   font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -51,8 +56,8 @@ code { font-family: var(--mono); font-size: 0.92em; }
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 14px var(--amber);
+  background: var(--green);
+  box-shadow: 0 0 14px var(--green);
 }
 
 .room {
@@ -69,7 +74,7 @@ code { font-family: var(--mono); font-size: 0.92em; }
   font-family: var(--mono);
   letter-spacing: 0.18em;
   font-size: 14px;
-  color: var(--amber);
+  color: var(--yellow);
   text-transform: uppercase;
 }
 
@@ -158,8 +163,8 @@ code { font-family: var(--mono); font-size: 0.92em; }
   color: transparent;
 }
 
-.options button[aria-checked='true'] { color: var(--amber); }
-.options button[aria-checked='true']::before { color: var(--amber); }
+.options button[aria-checked='true'] { color: var(--yellow); }
+.options button[aria-checked='true']::before { color: var(--yellow); }
 .options button:hover:not(:disabled) { background: var(--panel-2); }
 .options button:disabled { opacity: 0.4; cursor: default; }
 .options .stop { color: var(--red); }
@@ -176,10 +181,12 @@ kbd {
   background: #0d0d15;
 }
 
-button[aria-pressed='true'] { border-color: var(--amber); color: var(--amber); }
+button[aria-pressed='true'] { border-color: var(--yellow); color: var(--yellow); }
 
-button.ghost.stop { border-color: rgba(255, 92, 92, 0.4); color: var(--red); }
-button.ghost.stop:hover:not(:disabled) { border-color: var(--red); background: rgba(255, 92, 92, 0.12); }
+button.ghost.stop { border-color: rgba(255, 71, 87, 0.4); color: var(--red); }
+button.ghost.stop:hover:not(:disabled) { border-color: var(--red); background: rgba(255, 71, 87, 0.12); }
+
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 /* Buttons */
 button {
@@ -196,14 +203,14 @@ button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: 0.45; cursor: default; }
 
 button.primary {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: #1a1204;
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #14100a;
   font-weight: 650;
   padding: 10px 18px;
 }
 
-button.primary:hover:not(:disabled) { background: #ffc157; border-color: #ffc157; }
+button.primary:hover:not(:disabled) { background: #ffe066; border-color: #ffe066; }
 
 button.ghost { background: transparent; }
 
@@ -229,7 +236,7 @@ button.ghost { background: transparent; }
   overflow: hidden;
   border: 1px solid #2c2c3c;
   background: #000;
-  box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 176, 46, 0.06) inset;
+  box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 210, 63, 0.06) inset;
 }
 
 /* Widescreen is a display stretch: FBNeo has no 16:9 render mode, so the 4:3 frame fills a wider box. */
@@ -269,7 +276,7 @@ button.ghost { background: transparent; }
   backdrop-filter: blur(2px);
 }
 
-.paused-note strong { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); }
+.paused-note strong { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--yellow); }
 .paused-note span { max-width: 46ch; font-size: 13px; line-height: 1.5; color: var(--muted); }
 
 .marquee {
@@ -305,7 +312,7 @@ button.ghost { background: transparent; }
   font-size: 10px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--amber);
+  color: var(--yellow);
 }
 
 .gate h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; }
@@ -322,7 +329,7 @@ button.ghost { background: transparent; }
 }
 
 .error { color: var(--red) !important; font-size: 13px; }
-.warn { color: var(--amber); font-size: 12px; margin: 8px 0 0; }
+.warn { color: var(--yellow); font-size: 12px; margin: 8px 0 0; }
 
 /* Panels */
 .panel {
@@ -343,6 +350,24 @@ button.ghost { background: transparent; }
 }
 
 .panel-head { display: flex; align-items: baseline; justify-content: space-between; }
+
+/* A different arcade button colour tags each panel heading. */
+.host aside > .panel:nth-child(1) { --dot: var(--red); }
+.host aside > .panel:nth-child(2) { --dot: var(--blue); }
+.host aside > .panel:nth-child(3) { --dot: var(--green); }
+.host aside > .panel:nth-child(4) { --dot: var(--yellow); }
+.host aside > .panel:nth-child(5) { --dot: var(--pink); }
+.host aside > .panel:nth-child(6) { --dot: var(--cyan); }
+.host aside .panel-head h2::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  border-radius: 2px;
+  background: var(--dot, var(--yellow));
+  vertical-align: 1px;
+}
 .count { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 
 .muted { color: var(--muted); }
@@ -350,6 +375,12 @@ button.ghost { background: transparent; }
 
 /* Slot rows */
 .slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* One arcade button colour per port: red, yellow, blue, green. */
+.slots > li:nth-child(1) { --port: var(--red); }
+.slots > li:nth-child(2) { --port: var(--yellow); }
+.slots > li:nth-child(3) { --port: var(--blue); }
+.slots > li:nth-child(4) { --port: var(--green); }
 
 .slot {
   display: grid;
@@ -362,12 +393,12 @@ button.ghost { background: transparent; }
   border: 1px solid transparent;
 }
 
-.slot.live { border-color: rgba(255, 176, 46, 0.35); }
+.slot.live { border-color: color-mix(in srgb, var(--port) 42%, transparent); }
 
-.port { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.port { font-family: var(--mono); font-size: 12px; color: var(--port, var(--muted)); }
 
 .signal { width: 8px; height: 8px; border-radius: 50%; background: #2a2a3a; }
-.slot.live .signal { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+.slot.live .signal { background: var(--port); box-shadow: 0 0 10px var(--port); }
 
 .slot-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .slot-name.empty { color: var(--muted); }
@@ -408,9 +439,15 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .grow { flex: 1; }
 
 .input-icon { flex: none; color: #a9a6bd; }
-.slot .input-icon { color: #8f8ca6; }
+/* Device types get their own button colour in the detected-inputs list. */
+.input-icon.keyboard { color: var(--blue); }
+.input-icon.gamepad { color: var(--yellow); }
+.input-icon.arcade { color: var(--green); }
+.input-icon.touch { color: var(--pink); }
+.input-icon.guest { color: var(--cyan); }
+/* Port rows keep the icon muted so the port colour stays the loudest thing in the row. */
+.slot .input-icon { color: #9390aa; }
 .input-icon.empty { opacity: 0.45; }
-.input-icon.arcade { color: var(--teal); }
 
 .tag {
   display: inline-flex;
@@ -533,7 +570,7 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   color: var(--text);
   background: #15151f;
 }
-.key-rows kbd i { font-style: normal; font-size: 9px; color: var(--amber); }
+.key-rows kbd i { font-style: normal; font-size: 9px; color: var(--yellow); }
 
 /* Guest */
 .guest { max-width: 1100px; }
@@ -572,10 +609,10 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   align-items: center;
   gap: 8px;
   padding: 6px 8px 6px 11px;
-  border: 1px solid rgba(255, 176, 46, 0.5);
+  border: 1px solid rgba(255, 210, 63, 0.45);
   border-radius: 9px;
   background: rgba(10, 10, 16, 0.92);
-  color: var(--amber);
+  color: var(--yellow);
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.03em;
@@ -597,11 +634,11 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   pointer-events: none;
 }
 
-.video-note button { border-color: rgba(255, 176, 46, 0.5); color: var(--amber); }
+.video-note button { border-color: rgba(255, 210, 63, 0.45); color: var(--yellow); }
 
 .video-tags { display: inline-flex; gap: 4px; }
 .mini-tag { padding: 1px 5px; font-size: 9px; letter-spacing: 0.02em; }
-.tag.bad { color: var(--red); border-color: rgba(255, 92, 92, 0.45); }
+.tag.bad { color: var(--red); border-color: rgba(255, 71, 87, 0.45); }
 
 .sound {
   position: absolute;
@@ -609,8 +646,8 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   left: 50%;
   transform: translateX(-50%);
   background: rgba(8, 8, 13, 0.85);
-  border-color: var(--amber);
-  color: var(--amber);
+  border-color: var(--yellow);
+  color: var(--yellow);
   font-size: 13px;
 }
 
@@ -642,7 +679,7 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .dpad-arrow.right { right: 9px; top: 50%; transform: translateY(-50%); }
 .dpad-arrow.down { bottom: 8px; left: 50%; transform: translateX(-50%); }
 .dpad-arrow.left { left: 9px; top: 50%; transform: translateY(-50%); }
-.dpad-arrow.on { color: var(--amber); text-shadow: 0 0 10px var(--amber); }
+.dpad-arrow.on { color: var(--yellow); text-shadow: 0 0 10px var(--yellow); }
 .dpad-hub {
   position: absolute;
   top: 50%;
@@ -688,18 +725,36 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 .face.grid .touch-btn { transform: none; }
 .touch-btn {
+  --btn: var(--blue);
   width: 70px;
   height: 70px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid rgba(150, 148, 175, 0.45);
+  border: 1px solid color-mix(in srgb, var(--btn) 45%, transparent);
   background: rgba(25, 25, 36, 0.82);
   box-shadow: 0 8px 20px -12px #000;
+  color: var(--btn);
   font-family: var(--mono);
   font-size: 19px;
 }
+
+/* Face buttons follow the arcade panel: red, yellow, green, blue, then two playful extras. */
+.touch-btn.face-a { --btn: var(--red); }
+.touch-btn.face-b { --btn: var(--yellow); }
+.touch-btn.face-c { --btn: var(--green); }
+.touch-btn.face-d { --btn: var(--blue); }
+.touch-btn.face-e { --btn: var(--pink); }
+.touch-btn.face-f { --btn: var(--cyan); }
+.touch-btn.coin { --btn: var(--yellow); }
+.touch-btn.start { --btn: var(--green); }
+
 .touch-btn.on,
-.touch-btn:active { background: var(--amber); border-color: var(--amber); color: #1a1204; }
+.touch-btn:active { background: var(--btn); border-color: var(--btn); color: #0b0b12; }
+/* Keep the arcade colour on hover; the generic button hover would grey the border out. */
+.touch-btn:hover:not(:disabled):not(.on) {
+  background: rgba(30, 30, 44, 0.95);
+  border-color: color-mix(in srgb, var(--btn) 75%, transparent);
+}
 .touch-btn.wide { width: auto; height: 44px; padding: 0 18px; border-radius: 10px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Cast guide: the browser owns tab mirroring, so the dialog walks through its two steps. */
@@ -726,7 +781,7 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   font-size: 14px;
   line-height: 1.5;
 }
-.cast-card li b { color: var(--amber); font-weight: 600; }
+.cast-card li b { color: var(--yellow); font-weight: 600; }
 .cast-card .row { justify-content: flex-end; }
 
 /* Controller-only guest: no picture, just the pad in their hands next to the host's screen. */

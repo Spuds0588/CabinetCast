@@ -2,6 +2,26 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — Arcade primaries replace the orange
+
+**Black stays; the amber goes.** The palette is now a black cabinet with arcade button colours:
+`--yellow #ffd23f`, `--red #ff4757`, `--blue #4c8dff`, `--green #35d07f`, plus `--pink` and `--cyan` for
+the two extra face buttons. `--amber` and `--teal` no longer exist. The body keeps black and gains three
+low-alpha glows (blue top, red bottom-right, green bottom-left) so the page is not flat grey.
+
+**Colour has a job, not just a mood.** Yellow is the primary action, room code, toggle check and warning.
+Red is Stop, errors, bad tags and the LIVE dot. Green is the power lamp, Start, and the arcade-stick icon.
+Blue is focus, the keyboard icon and P3. Ports are colour coded in the roster (P1 red, P2 yellow, P3 blue,
+P4 green) and a live port's border and LED take its colour. Panel headings carry a small colour dot, and
+device icons are colour coded. Face buttons follow the arcade panel: A red, B yellow, C green, D blue, E
+pink, F cyan; Coin is yellow and Start green. A pressed button fills with its own colour, and the touch
+buttons keep that colour on hover instead of inheriting the grey button hover.
+
+**Verified:** `npm run build` passes with `pipefail`; computed styles show P2's live border/LED as yellow,
+the A button filling red with dark text, and all six face buttons resolving their own border colours. The
+hover rule was fixed after the first check showed Start's border turning grey under the pointer. Desktop,
+390px host, guest overlay, and the four- and six-button pads were checked visually.
+
 ## 2026-10-19 — No wordmark, no menu bar: the room code and a hamburger
 
 **The name is out of the UI.** The host and guest headers no longer print CABINET CAST, the tab title is
