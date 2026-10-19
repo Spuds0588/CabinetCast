@@ -183,7 +183,7 @@ export function GuestView({ code, pad = false }: { code: string; pad?: boolean }
         <div className="pad-stage">
           <div className="pad-tag">
             <span className="lamp" />
-            {code || '····'} · {port === -1 ? 'Spectator' : `P${port + 1}`} · {STATUS_TEXT[status]}
+            {port === -1 ? 'Spectator' : `P${port + 1}`} · {STATUS_TEXT[status]}
           </div>
           <TouchControls layout="pad" buttons={buttons} onChange={(mask) => (touchMask.current = mask)} />
         </div>
@@ -194,10 +194,6 @@ export function GuestView({ code, pad = false }: { code: string; pad?: boolean }
   return (
     <div className={handheld ? 'app guest handheld' : 'app guest'}>
       <header className="topbar">
-        <div className="room">
-          <span className="label">room</span>
-          <b>{code || '····'}</b>
-        </div>
         <div className="statusline">
           {live && <span className="live">LIVE</span>}
           <span>{STATUS_TEXT[status]}</span>

@@ -20,7 +20,7 @@ Built for shared-screen arcade games, the ones where everybody plays on the same
   when everyone is in the same room watching the cabinet.
 - **TV:** put the tab on the TV with Chrome's Cast menu (**Cast tab**), then press `Shift+F` here. The TV
   follows the tab into fullscreen and carries its sound; Chrome mirrors a tab at up to 720p. The **Cast**
-  button on the host bar shows those two steps, since only the browser can start a tab cast.
+  entry in the host menu shows those two steps, since only the browser can start a tab cast.
 
 Player 1 is the host keyboard; each guest or gamepad takes the next free port. The Players panel shows one
 small tag per player, with the port colour, the device icon and a dot that lights while they press. `+ Player`
@@ -31,8 +31,8 @@ its own.
 Press `?` (or the Keys button) for player 1's keys: WASD + `J K L U I O`, `Space` coin, `Enter` start. The
 host keyboard is player 1 only: players 2–4 need their own device, a gamepad or a phone joining the room.
 
-The host bar shows the room code and a menu button. The menu holds Copy link, QR code, Keys, the widescreen
-and fullscreen toggles, Cast, and Stop game. Fullscreen is `Shift+F`, widescreen is `Shift+W`. Widescreen
+The host bar is just a menu button; the room code lives in the invite link and QR code. The menu holds Copy
+link, QR code, Keys, the widescreen and fullscreen toggles, Cast, and Stop game. Fullscreen is `Shift+F`, widescreen is `Shift+W`. Widescreen
 stretches the core's 4:3 picture to 16:9 for viewers who prefer a filled screen; FBNeo has no true widescreen
 render mode, and the stream itself stays 4:3.
 

@@ -1,6 +1,8 @@
 # todo.md
 
 ## Done (MVP)
+- [x] Room code removed from the host and guest headers and the pad status line; the invite link and QR still
+      carry it, so sharing is unchanged (2026-10-19)
 - [x] Players panel collapsed to one tag per player (port colour, icon, name, live dot, guest rate) with a
       `+ Player` chooser for the rare manual tie of a keyboard or unassigned pad; auto-assignment unchanged
       (2026-10-19)

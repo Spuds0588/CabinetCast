@@ -60,32 +60,6 @@ code { font-family: var(--mono); font-size: 0.92em; }
   box-shadow: 0 0 14px var(--green);
 }
 
-.room {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 5px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--panel);
-}
-
-.room b {
-  font-family: var(--mono);
-  letter-spacing: 0.18em;
-  font-size: 14px;
-  color: var(--yellow);
-  text-transform: uppercase;
-}
-
-.label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
 .statusline {
   margin-left: auto;
   display: flex;

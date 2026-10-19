@@ -2,6 +2,18 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — The room code leaves the header
+
+**The code only matters when inviting.** The pill in the host and guest headers is gone, and the pad status
+line no longer prints it either. The Invite panel's link and the Copy link / QR actions still carry it, which
+is the one place it needs to live. With the wordmark already gone, the host header is now just the menu
+button on the right; the guest header is just its connection state. `.room` and `.label` are removed from
+the stylesheet.
+
+**Verified:** `npm run build` passes with `pipefail`. The host header renders only the menu button, the guest
+header only `Connected`, and the pad tag `P3 · CONNECTED`. The invite link still resolves to `?room=...`, and
+the QR dialog is unchanged. Checked at desktop and 390px.
+
 ## 2026-10-19 — Players are tags, and adding one is the fallback
 
 **The roster was the tallest panel for the least information.** Four full-width port rows plus a separate

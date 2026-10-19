@@ -433,10 +433,6 @@ export function HostView() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="room">
-          <span className="label">room</span>
-          <b>{code || '····'}</b>
-        </div>
         <div className="menu-wrap" ref={menu}>
           <button
             className="ghost menu-btn"
