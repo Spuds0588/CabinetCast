@@ -659,6 +659,77 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .touch-btn:active { background: var(--amber); border-color: var(--amber); color: #1a1204; }
 .touch-btn.wide { width: auto; height: 44px; padding: 0 18px; border-radius: 10px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
 
+/* Cast receiver: the host's frames, edge to edge, nothing else. */
+.cast {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+.cast canvas {
+  width: 100%;
+  height: 100%;
+  /* Keep the cabinet's 4:3 pixels square on a 16:9 TV instead of stretching them. */
+  object-fit: contain;
+  display: block;
+}
+
+.cast-full,
+.cast-sound {
+  position: absolute;
+  bottom: 16px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: rgba(12, 12, 20, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.cast-full {
+  right: 16px;
+}
+
+.cast-sound {
+  left: 16px;
+  color: var(--amber);
+  opacity: 1;
+}
+
+.cast-full:hover,
+.cast-full:focus-visible {
+  opacity: 1;
+}
+
+/* A TV shows a cursor too; the buttons fade until it moves near them. */
+.cast:hover .cast-full {
+  opacity: 1;
+}
+
+.cast-note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.cast-note h1 {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: clamp(28px, 8vw, 64px);
+  letter-spacing: 0.18em;
+  color: var(--amber);
+}
+
 /* Controller-only guest: no picture, just the pad in their hands next to the host's screen. */
 .app.guest.pad {
   max-width: none;

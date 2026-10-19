@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getBios, saveBios } from '../core/bios'
+import { canCast, startCast } from '../core/cast'
 import { launchArcade, type ArcadeSession } from '../core/emulator'
 import { createKeyboard, padLabel, padMask, pads } from '../core/input'
 import { BUTTON_COUNTS, FRAME_PRESETS, type FramePreset } from '../core/protocol'
@@ -32,6 +33,7 @@ export function HostView() {
   const [keysOpen, setKeysOpen] = useState(false)
   const [saves, setSaves] = useState<Partial<Record<SaveSlot, number>>>({})
   const [saveStatus, setSaveStatus] = useState('')
+  const [castStatus, setCastStatus] = useState('')
   const [preset, setPreset] = useState<FramePreset>(() => loadPreset())
   const [buttonCount, setButtonCount] = useState(4)
   // Which link the Invite panel hands out: a guest who watches, or a phone used as a controller.
@@ -120,8 +122,15 @@ export function HostView() {
       onJoin(id) {
         const port = slots.assignPeer(id)
         host.current?.setSlot(id, port)
-        console.log(`[Cabinet:SlotMgr] Peer "${id}" assigned to Port ${port + 1}`)
+        console.log(`[Cabinet:SlotMgr] Peer "${id}" assigned to Port ${port !== -1 ? port + 1 : 'spectator'}`)
         refresh()
+      },
+      // A cast receiver wants the picture, not a controller: hand its port back as soon as it says so.
+      onSpectate(id) {
+        slots.releasePeer(id)
+        host.current?.setSlot(id, -1)
+        refresh()
+        console.log(`[Cabinet:SlotMgr] Peer "${id}" is casting, so it holds no port`)
       },
       onLeave(id) {
         slots.releasePeer(id)
@@ -397,6 +406,20 @@ export function HostView() {
     refresh()
   }
 
+  /** Send the picture to a TV. The receiver page joins the room like any other guest. */
+  const castScreen = () => {
+    const url = `${location.origin}${location.pathname}?room=${code}&mode=cast`
+    void startCast(url).then((how) =>
+      setCastStatus(
+        how === 'cast'
+          ? 'Casting to the receiver'
+          : how === 'window'
+            ? 'Cast window opened'
+            : 'Cast popup blocked; open the cast link directly',
+      ),
+    )
+  }
+
   const clearInput = (port: number) => {
     slots.setSource(port, { kind: 'none' })
     syncPeers()
@@ -442,6 +465,18 @@ export function HostView() {
             title="Fullscreen (Shift+F)"
           >
             Fullscreen <kbd>⇧F</kbd>
+          </button>
+          <button
+            className="ghost"
+            onClick={castScreen}
+            disabled={!code}
+            title={
+              canCast()
+                ? 'Send the cabinet to a Cast receiver'
+                : 'Opens a cast window; drag it to your TV or use the browser Cast menu'
+            }
+          >
+            Cast
           </button>
           {status === 'running' && (
             <button className="ghost stop" onClick={stopGame}>
@@ -549,6 +584,7 @@ export function HostView() {
               <kbd>⇧F</kbd> fullscreen · <kbd>⇧W</kbd> widescreen. Widescreen stretches the core's 4:3 picture;
               FBNeo has no 16:9 render mode.
             </p>
+            {castStatus && <p className="muted small">{castStatus}</p>}
             {status === 'running' && fps > 0 && fps < 30 && (
               <p className="warn">
                 Host is drawing {fps} fps. Keep this tab in front; browsers throttle a background tab.

@@ -2,6 +2,40 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — Phones as controllers, and a TV receiver for the cabinet
+
+**Two new guest roles reuse the input channel and the frame relay.** A couch player opens
+`?room=CODE&mode=pad` and gets only the touch pad. The pad guest sends `{t:'mode', video:false}` like any
+phone guest without a picture, so `HostNet` keeps no frame pump for it: one data channel, no encode. A TV
+opens `?room=CODE&mode=cast` and gets only the picture, joining as a regular guest for frames and the audio
+call. It sends `cast:true` in its mode message, and `HostEvents.onSpectate` exists for one reason: the host
+assigns a port on connect, before any message arrives, so the receiver has to hand that port back. Without
+it a TV silently took P2.
+
+**The pad is always horizontal.** Portrait rotates `.pad-stage` by 90 degrees instead of laying out a
+vertical version, so turning the phone sideways changes nothing. Button size follows the count (104 / 92 /
+82 / 72 px for 2 / 3 / 4 / 5–6), 2 and 3 sit in one row, 4–6 in two rows with the lower row offset half a
+button, and coin and start sit bottom centre like select and start on a console controller.
+
+**Casting is best effort, as agreed.** `startCast()` tries `PresentationRequest` and falls back to a popup
+window. Chrome desktop exposes the constructor but this setup has no receiver picker behind it, so the
+popup is the real path: it is the cast page in a 960x720 window, ready to be dragged to a TV or mirrored
+with the browser's own Cast menu. The page attempts fullscreen on load and exposes a Fullscreen button when
+the browser refuses it without a gesture. Sound is the WebRTC call track; autoplay often works because the
+window was opened by a click, and a "Tap for sound" button covers the case where it does not. Frames are
+asked for at 30 fps and the receiver drops stale ones, so the picture trails the cabinet by whatever the
+encode and network cost, with no clock tying the two together.
+
+**Verified:** measured pad sizes 104/92/82/72 px against button counts 2/3/4/6, portrait rotated with no
+horizontal overflow, pad tap delivered mask `1024` to the host. Cast page painted live frames (starfield,
+then the attract screen), audio element held one live track, and two simultaneous receivers both showed
+`SPECTATOR` with ports `-1` while a pad guest joined on P2 and got no frame rate entry. `npm run build`
+passed with `pipefail`.
+
+**Open:** a physical phone and a real Chromecast are untested. A cast receiver is an ordinary guest, so on
+Chrome desktop the Cast button cannot place the page on a Chromecast by itself; the browser's Cast/mirror
+menu is still the step that moves the window to the TV.
+
 ## 2026-10-19 — One keyboard, one port: players 2–4 bring their own device
 
 **Four keyboard rows were pretending to be four players.** Every port had a full key map (P2 arrows +

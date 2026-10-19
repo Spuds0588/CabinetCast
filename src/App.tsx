@@ -1,11 +1,15 @@
+import { CastView } from './components/CastView'
 import { GuestView } from './components/GuestView'
 import { HostView } from './components/HostView'
 
 const params = new URLSearchParams(location.search)
 const room = params.get('room')
-/** `mode=pad` is the in-person guest: controls only, no picture, nothing to watch. */
+/** `mode=pad` is the in-person guest: controls only. `mode=cast` is a TV receiver: picture only. */
 const pad = params.get('mode') === 'pad'
+const cast = params.get('mode') === 'cast'
 
 export default function App() {
-  return room ? <GuestView code={room} pad={pad} /> : <HostView />
+  if (!room) return <HostView />
+  if (cast) return <CastView code={room} />
+  return <GuestView code={room} pad={pad} />
 }

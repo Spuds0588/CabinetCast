@@ -39,6 +39,8 @@ export class GuestNet {
     private readonly events: GuestEvents,
     /** False for a controller-only guest: it never asks for, or decodes, a picture. */
     private readonly wantsVideo = true,
+    /** True for a TV receiver: the host gives it picture and sound but no player port. */
+    private readonly cast = false,
   ) {
     this.peer = new Peer({ config: ICE })
 
@@ -51,7 +53,7 @@ export class GuestNet {
         log(`Connected to room "${code}"`)
         this.events.onStatus('connected')
         this.send({ t: 'hello', platform: /iPad|iPhone|iPod/.test(navigator.userAgent) ? 'apple' : 'other' })
-        this.send({ t: 'mode', video: this.wantsVideo })
+        this.send({ t: 'mode', video: this.wantsVideo, cast: this.cast })
         this.flushSource()
       })
       conn.on('close', () => !this.destroyed && this.events.onStatus('error', 'host closed the connection'))

@@ -34,6 +34,8 @@ export interface HostPeer {
 export interface HostEvents {
   onRoster(peers: HostPeer[]): void
   onJoin(id: string): void
+  /** A cast receiver: picture only, so it must not hold a player port. */
+  onSpectate(id: string): void
   onLeave(id: string): void
   onInput(id: string, mask: number): void
 }
@@ -50,6 +52,7 @@ export class HostNet {
   private readonly rates = new Map<string, number>()
   /** Guests that want the picture. A controller-only guest is false and costs no encode at all. */
   private readonly video = new Map<string, boolean>()
+  private readonly spectators = new Set<string>()
   private readonly pumps = new Map<string, number>()
   private readonly greeted = new Set<string>()
   private audio: MediaStream | null = null
@@ -129,6 +132,10 @@ export class HostNet {
         this.roster()
       } else if (message.t === 'mode') {
         this.video.set(id, message.video)
+        if (message.cast) {
+          this.spectators.add(id)
+          this.events.onSpectate(id)
+        }
         if (message.video) this.startFrames(id)
         else this.stopFrames(id)
         this.roster()
@@ -157,6 +164,7 @@ export class HostNet {
     this.sources.delete(id)
     this.rates.delete(id)
     this.video.delete(id)
+    this.spectators.delete(id)
     this.greeted.delete(id)
     this.events.onLeave(id)
     this.roster()
