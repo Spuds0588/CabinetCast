@@ -13,8 +13,15 @@ const FACE = [
   { bit: INPUT_BITS.BUTTON_6, label: 'F', area: 'f' },
 ]
 
+interface Props {
+  onChange: (mask: number) => void
+  buttons?: number
+  /** 'overlay' floats over a video feed; 'pad' is the controller-only page. */
+  layout?: 'overlay' | 'pad'
+}
+
 /** On-screen controls for touch devices. Emits the same 12-bit mask as the keyboard and gamepad. */
-export function TouchControls({ onChange, buttons = 6 }: { onChange: (mask: number) => void; buttons?: number }) {
+export function TouchControls({ onChange, buttons = 6, layout = 'overlay' }: Props) {
   const held = useRef(0)
   const [mask, setMask] = useState(0)
 
@@ -65,41 +72,75 @@ export function TouchControls({ onChange, buttons = 6 }: { onChange: (mask: numb
     </button>
   )
 
+  const dpad = (
+    <div
+      className="dpad"
+      role="group"
+      aria-label="Direction pad"
+      onPointerDown={(event) => {
+        event.preventDefault()
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId)
+        } catch {
+          /* same as the buttons */
+        }
+        movePad(event)
+      }}
+      onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && movePad(event)}
+      onPointerUp={releasePad}
+      onPointerCancel={releasePad}
+      onLostPointerCapture={releasePad}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      <span className={`dpad-arrow up${mask & INPUT_BITS.UP ? ' on' : ''}`}>▲</span>
+      <span className={`dpad-arrow right${mask & INPUT_BITS.RIGHT ? ' on' : ''}`}>▶</span>
+      <span className={`dpad-arrow down${mask & INPUT_BITS.DOWN ? ' on' : ''}`}>▼</span>
+      <span className={`dpad-arrow left${mask & INPUT_BITS.LEFT ? ' on' : ''}`}>◀</span>
+      <span className="dpad-hub" />
+    </div>
+  )
+
+  const count = Math.max(2, Math.min(buttons, FACE.length))
+  const faces = FACE.slice(0, count)
+
+  if (layout === 'pad') {
+    // Fewer buttons means each one can be bigger. Two and three sit in one row; four to six get a
+    // two-row arcade stack with the lower row offset, which keeps every button inside thumb reach.
+    const sizeClass = count <= 2 ? 'pad-2' : count === 3 ? 'pad-3' : count === 4 ? 'pad-4' : 'pad-56'
+    const rows =
+      count <= 3
+        ? [faces]
+        : [faces.slice(0, Math.ceil(count / 2)), faces.slice(Math.ceil(count / 2))]
+
+    return (
+      <div className={`touch touchpad ${sizeClass}`} aria-label="Touch controls">
+        {dpad}
+        <div className="pad-meta">
+          {button(INPUT_BITS.COIN, 'Coin', 'wide')}
+          {button(INPUT_BITS.START, 'Start', 'wide')}
+        </div>
+        <div className="pad-face">
+          {rows.map((row, index) => (
+            <div key={index} className={index === 0 ? 'pad-row' : 'pad-row offset'}>
+              {row.map((face) => button(face.bit, face.label))}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="touch" aria-label="Touch controls">
-      <div
-        className="dpad"
-        role="group"
-        aria-label="Direction pad"
-        onPointerDown={(event) => {
-          event.preventDefault()
-          try {
-            event.currentTarget.setPointerCapture(event.pointerId)
-          } catch {
-            /* same as the buttons */
-          }
-          movePad(event)
-        }}
-        onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && movePad(event)}
-        onPointerUp={releasePad}
-        onPointerCancel={releasePad}
-        onLostPointerCapture={releasePad}
-        onContextMenu={(event) => event.preventDefault()}
-      >
-        <span className={`dpad-arrow up${mask & INPUT_BITS.UP ? ' on' : ''}`}>▲</span>
-        <span className={`dpad-arrow right${mask & INPUT_BITS.RIGHT ? ' on' : ''}`}>▶</span>
-        <span className={`dpad-arrow down${mask & INPUT_BITS.DOWN ? ' on' : ''}`}>▼</span>
-        <span className={`dpad-arrow left${mask & INPUT_BITS.LEFT ? ' on' : ''}`}>◀</span>
-        <span className="dpad-hub" />
-      </div>
+      {dpad}
 
       <div className="touch-right">
         <div className="touch-meta">
           {button(INPUT_BITS.COIN, 'Coin', 'wide')}
           {button(INPUT_BITS.START, 'Start', 'wide')}
         </div>
-        {/* Four buttons keep the arcade diamond; any other count uses a plain grid whose column count
-            follows the count, so a two-button pad does not reserve room for six. */}
+        {/* Four buttons keep the arcade diamond; any other count uses a plain grid whose column
+            count follows the count, so a two-button pad does not reserve room for six. */}
         <div
           className={buttons === 4 ? 'face' : 'face grid'}
           style={
@@ -108,9 +149,7 @@ export function TouchControls({ onChange, buttons = 6 }: { onChange: (mask: numb
               : { gridTemplateColumns: `repeat(${Math.min(Math.max(buttons, 2), 3)}, var(--face-size))` }
           }
         >
-          {FACE.slice(0, Math.max(2, Math.min(buttons, FACE.length))).map((face) =>
-            button(face.bit, face.label, '', face.area),
-          )}
+          {faces.map((face) => button(face.bit, face.label, '', face.area))}
         </div>
       </div>
     </div>

@@ -667,43 +667,73 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   padding: 0;
   gap: 0;
   overflow: hidden;
+  background: var(--bg);
 }
 
-.app.guest.pad .topbar {
-  margin: 0;
-  border-radius: 0;
-  padding: max(12px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 12px
-    max(18px, env(safe-area-inset-left));
+.pad-stage {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
 }
 
-.app.guest.pad .touch {
-  /* A grid, not the overlay's flex row: the pad must lay out inside the safe area on any width. */
-  flex: 1;
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: end;
-  gap: 16px;
-  padding: 0 max(20px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom))
-    max(20px, env(safe-area-inset-left));
+/* Always a horizontal pad: a portrait phone gets the stage turned on its side rather than a cramped
+   vertical version of the same controls. */
+.app.guest.pad.rotated .pad-stage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100dvh;
+  height: 100dvw;
+  transform-origin: top left;
+  transform: rotate(90deg) translateY(-100%);
 }
 
-.app.guest.pad .touch-right { justify-self: end; }
-
-.app.guest.pad .touch .dpad { width: 176px; height: 176px; }
-.app.guest.pad .touch .face { --face-size: 72px; }
-.app.guest.pad .touch .touch-btn { width: 72px; height: 72px; }
-/* Coin and start stack: side by side they are wider than the face pad and push it off screen. */
-.app.guest.pad .touch-right { flex: none; }
-.app.guest.pad .touch-meta { flex-direction: column; align-items: stretch; gap: 8px; }
-.app.guest.pad .touch-meta .touch-btn.wide { padding: 0 14px; }
-
-.app.guest.pad .pad-foot {
+.pad-tag {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 18px max(14px, env(safe-area-inset-bottom));
+  justify-content: center;
+  gap: 8px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
+
+/* Three zones: stick, coin/start, buttons. Coin and start sit bottom-centre, where a console puts them. */
+.touch.touchpad {
+  flex: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: 18px;
+  padding: 0 max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
+}
+
+/* Fewer buttons, bigger buttons. */
+.touchpad.pad-2 { --face-size: 104px; --dpad-size: 208px; }
+.touchpad.pad-3 { --face-size: 92px; --dpad-size: 196px; }
+.touchpad.pad-4 { --face-size: 82px; --dpad-size: 184px; }
+.touchpad.pad-56 { --face-size: 72px; --dpad-size: 172px; }
+
+.touchpad .dpad { width: var(--dpad-size); height: var(--dpad-size); }
+.touchpad .touch-btn { width: var(--face-size); height: var(--face-size); font-size: 22px; }
+
+.pad-meta {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+
+.pad-meta .touch-btn.wide { width: auto; padding: 0 22px; height: 46px; }
+
+.pad-face { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+.pad-row { display: flex; gap: 10px; }
+/* The lower row is offset by half a button, the usual arcade stagger. */
+.pad-row.offset { margin-right: calc(var(--face-size) * 0.5); }
 
 /* Handheld play: the guest gets the cabinet and nothing else, controls floating over the picture. */
 .app.guest.handheld { max-width: none; margin: 0; padding: 0; gap: 0; height: 100dvh; overflow: hidden; }

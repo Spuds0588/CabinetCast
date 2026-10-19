@@ -175,33 +175,18 @@ export function GuestView({ code, pad = false }: { code: string; pad?: boolean }
     })
 
   // In-person mode: the phone is a controller next to the host's screen, so there is no picture at all.
+  // The pad is always laid out horizontally; a portrait phone gets the whole stage turned on its side
+  // rather than a cramped vertical version of the same controls.
   if (pad) {
     return (
-      <div className="app guest pad">
-        <header className="topbar">
-          <div className="brand">
+      <div className={`app guest pad${landscape ? '' : ' rotated'}`}>
+        <div className="pad-stage">
+          <div className="pad-tag">
             <span className="lamp" />
-            CABINET<span>CAST</span>
+            {code || '····'} · {port === -1 ? 'Spectator' : `P${port + 1}`} · {STATUS_TEXT[status]}
           </div>
-          <div className="room">
-            <span className="label">room</span>
-            <b>{code || '····'}</b>
-          </div>
-          <div className="statusline">
-            {status === 'connected' && <span className="live">LIVE</span>}
-            <span>{port === -1 ? 'Spectator' : `Player ${port + 1}`}</span>
-          </div>
-        </header>
-
-        <TouchControls buttons={buttons} onChange={(mask) => (touchMask.current = mask)} />
-
-        <footer className="pad-foot">
-          <span className="muted small">{STATUS_TEXT[status]}</span>
-          <span className="tag">
-            <InputIcon kind={ownKind} size={14} />
-            {port === -1 ? 'Spectator' : `Controller for player ${port + 1}`}
-          </span>
-        </footer>
+          <TouchControls layout="pad" buttons={buttons} onChange={(mask) => (touchMask.current = mask)} />
+        </div>
       </div>
     )
   }
