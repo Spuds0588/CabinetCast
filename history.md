@@ -21,7 +21,8 @@ and `HostNet.spectators`. They existed only to keep the receiver from holding a 
 is untouched.
 
 **Verified:** `npm run build` passes; the Cast button opens the guide, and Escape, the backdrop and Close all
-dismiss it; the guide's Fullscreen button closes it and enters fullscreen.
+dismiss it; the guide's Fullscreen button closes it and calls the same toggle as `Shift+F`. This preview
+browser refuses the actual fullscreen request, so entry into fullscreen and the cast itself stay unverified.
 
 ## 2026-10-19 — Phones as controllers, and a TV receiver for the cabinet
 
