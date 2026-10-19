@@ -218,12 +218,23 @@ export function GuestView({ code }: { code: string }) {
           </button>
         )}
 
-        {noPicture && (
-          <div className="video-note" role="status">
-            <span>No picture</span>
-            <button className="mini" onClick={retryNow}>
-              Try {PIN_LABEL[nextPin]}
-            </button>
+        {/* Always a layer over the picture, not just with ?debug: some Android builds leave a
+            captured video unpainted (a plain white rectangle) until something is composited on top
+            of it, and this chip is also the honest readout of what the stream is doing. */}
+        {health && !debug && (
+          <div className={noPicture ? 'video-note' : 'video-note live'} role="status">
+            <span>
+              {noPicture
+                ? 'No picture'
+                : health.frames > 0
+                  ? `LIVE · ${health.codec.replace('video/', '')} · ${health.fps} fps`
+                  : 'Starting video…'}
+            </span>
+            {noPicture && (
+              <button className="mini" onClick={retryNow}>
+                Try {PIN_LABEL[nextPin]}
+              </button>
+            )}
           </div>
         )}
 

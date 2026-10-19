@@ -210,6 +210,25 @@ button.ghost { background: transparent; }
   background: #000;
 }
 
+/* Hidden single screen: the host has to know the emulator is crawling, not that the ROM is broken. */
+.paused-note {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(8, 8, 13, 0.86);
+  backdrop-filter: blur(2px);
+}
+
+.paused-note strong { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); }
+.paused-note span { max-width: 46ch; font-size: 13px; line-height: 1.5; color: var(--muted); }
+
 .marquee {
   position: absolute;
   left: 12px;
@@ -524,6 +543,13 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   border-color: var(--line);
   color: var(--muted);
   font-size: 10px;
+  pointer-events: none;
+}
+
+/* Always-on readout: information, not a warning, so it stays muted. */
+.video-note.live {
+  border-color: var(--line);
+  color: var(--muted);
   pointer-events: none;
 }
 

@@ -137,9 +137,16 @@ export class HostNet {
   private greet(id: string, platform: 'apple' | 'other') {
     if (this.greeted.has(id)) return
     this.greeted.add(id)
-    if (!this.pins.has(id)) this.pins.set(id, platform === 'apple' ? 'auto' : 'vp8')
+    const pin: CodecPin = platform === 'apple' ? 'auto' : 'vp8'
+    const changed = this.pins.get(id) !== pin
+    if (changed) this.pins.set(id, pin)
     this.roster()
-    if (this.stream) this.callGuest(id)
+    if (!this.stream) return
+    // The connection's open handler may already have offered the stream before this guest named its
+    // platform, which pins every guest to 'auto' (H.264 first). Drop that call's signature so the
+    // offer below actually goes out with the right codec instead of being skipped as a duplicate.
+    if (changed) this.callSignatures.delete(id)
+    this.callGuest(id)
   }
 
   /**

@@ -424,6 +424,17 @@ export function HostView() {
           <canvas id="cabinet-canvas" width={384} height={288} />
           {status === 'running' && <div className="marquee">{rom}</div>}
 
+          {status === 'running' && fps > 0 && fps < 50 && (
+            <div className="paused-note" role="status">
+              <strong>Running at {fps} fps</strong>
+              <span>
+                The core advances one frame per animation frame, so when the browser cannot paint fast enough the game
+                runs in slow motion instead of dropping frames, and guests get exactly what this tab renders. Keep this
+                window in front and close heavy tabs to get back to 60.
+              </span>
+            </div>
+          )}
+
           {empty && (
             <div className="gate">
               <div className="gate-inner">
