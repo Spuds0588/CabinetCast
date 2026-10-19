@@ -32,10 +32,10 @@ export function TouchControls({ onChange }: { onChange: (mask: number) => void }
 
   const releasePad = () => commit(held.current & ~DIRECTIONS)
 
-  const button = (bit: number, label: string, className = '') => (
+  const button = (bit: number, label: string, className = '', ...extra: string[]) => (
     <button
       type="button"
-      className={['touch-btn', className, mask & bit ? 'on' : ''].filter(Boolean).join(' ')}
+      className={['touch-btn', className, ...extra, mask & bit ? 'on' : ''].filter(Boolean).join(' ')}
       aria-label={label}
       onPointerDown={(event) => {
         event.preventDefault()
@@ -89,10 +89,10 @@ export function TouchControls({ onChange }: { onChange: (mask: number) => void }
           {button(INPUT_BITS.START, 'Start', 'wide')}
         </div>
         <div className="face">
-          {button(INPUT_BITS.BUTTON_1, 'A')}
-          {button(INPUT_BITS.BUTTON_2, 'B')}
-          {button(INPUT_BITS.BUTTON_3, 'C')}
-          {button(INPUT_BITS.BUTTON_4, 'D')}
+          {button(INPUT_BITS.BUTTON_1, 'A', '', 'a')}
+          {button(INPUT_BITS.BUTTON_2, 'B', '', 'b')}
+          {button(INPUT_BITS.BUTTON_3, 'C', '', 'c')}
+          {button(INPUT_BITS.BUTTON_4, 'D', '', 'd')}
         </div>
       </div>
     </div>

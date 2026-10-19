@@ -1,6 +1,6 @@
 import Peer, { type DataConnection, type MediaConnection } from 'peerjs'
 import { ENDPOINT, randomCode, STREAM_FPS, type GuestMessage, type HostMessage, type InputKind } from '../core/protocol'
-import { dropUnsafeVideoCodecs } from './sdp'
+import { safariSafeSdp } from './sdp'
 
 const ICE = {
   iceServers: [
@@ -116,8 +116,23 @@ export class HostNet {
     if (!this.stream || this.callSignatures.get(id) === this.streamSignature) return
     this.calls.get(id)?.close()
     // One offer with both tracks, with Safari-unsafe codecs removed.
-    const call = this.peer.call(id, this.stream, { sdpTransform: dropUnsafeVideoCodecs })
+    const call = this.peer.call(id, this.stream, { sdpTransform: safariSafeSdp })
     if (!call) return
+    // The negotiated codec is the first thing to check when a guest has sound but no picture.
+    const pc = call.peerConnection
+    pc.addEventListener('connectionstatechange', () => {
+      if (pc.connectionState !== 'connected') return
+      void pc
+        .getStats()
+        .then((report) => {
+          for (const stat of report.values()) {
+            if (stat.type !== 'outbound-rtp' || stat.kind !== 'video' || !stat.codecId) continue
+            const codec = report.get(stat.codecId)
+            log(`Guest ${id.slice(0, 4)} video codec: ${codec?.mimeType ?? 'unknown'}`)
+          }
+        })
+        .catch(() => undefined)
+    })
     // Chrome's default encoder policy trades frame rate for sharpness; a game wants the frames.
     for (const sender of call.peerConnection.getSenders()) {
       if (sender.track?.kind !== 'video') continue

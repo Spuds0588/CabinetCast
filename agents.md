@@ -51,11 +51,13 @@ hosted on GitHub Pages. Tauri packaging is deferred.
   channel when its mode changes; `HostNet` keeps the latest per peer. Sticks are still gamepads to the API,
   so `padKind()` can only guess from the id (`arcade|fightstick|hori|qanba|mayflash`). New input types need a
   value on `InputKind`, an icon in `InputIcon`, and a mapping in `SlotPanel`/`GuestView`.
-- **Touch controls are sized for thumbs, not for a screenshot.** 70px face buttons and a 168px d-pad with
-  12–14px gaps in portrait; 68/158px in landscape. Microsoft's touch-layout guidance is the reference:
+- **Touch controls are sized for thumbs, not for a screenshot.** A/B/C/D sit in an arcade diamond (the
+  2x2 grid is rotated 45° and each label is rotated back), 56px face buttons and a 146px d-pad in portrait,
+  60/158px in landscape. Microsoft's touch-layout guidance is the reference:
   movement under the left thumb, actions under the right, only two simultaneous thumbs, occasional buttons
-  (Coin/Start) out of the primary ring. The sideways layout is a fixed overlay over a letterboxed 4:3 feed;
-  keep buttons translucent and respect `env(safe-area-inset-*)`.
+  (Coin/Start) out of the primary ring. Portrait keeps the feed in the top half of the screen with the controls
+  below it; landscape turns the whole viewport into the cabinet and floats the controls over the side bars.
+  Keep buttons translucent and respect `env(safe-area-inset-*)`.
 - **Save states are host-only and live in IndexedDB** (`src/core/saves.ts`, `cabinet_saves`), keyed by
   `name#size`. Nostalgist exposes `saveState()` / `loadState()`; a state is a Blob, a few KB for FBNeo. The
   auto slot is written every 45s, on `visibilitychange` hidden, and before Stop; it is loaded right after a
@@ -64,11 +66,18 @@ hosted on GitHub Pages. Tauri packaging is deferred.
   `maxFramerate`. Input is still injected every host rAF, so lowering it does not add input latency; it
   trades video smoothness for encode/decode and bitrate. Do not claim it makes input faster.
 - **Safari decodes less than Chromium offers.** A raw `peer.call(id, stream)` advertises VP8, VP9, AV1 and
-  H.264; the answerer's order picks the encoder, and iOS Safari rendered a white rectangle instead of VP9/AV1
-  frames. Every host call goes through `dropUnsafeVideoCodecs` in `src/net/sdp.ts` as the `sdpTransform`, so
-  the offer only carries VP8 + H.264 (plus their rtx). Keep codec policy there; never hand a raw stream to
-  `peer.call`. One call must carry audio and video together — a video-only call followed by a video+audio
-  call renegotiates the same m-line and some Safari versions never paint the video after that.
+  H.264; iOS Safari painted a white rectangle while audio and input kept working. Every host call goes
+  through `safariSafeSdp` in `src/net/sdp.ts` as the `sdpTransform`: VP9/AV1 (and their rtx) are removed and
+  the H.264 payloads are moved to the front of the video m-line, because the offer's payload order is what
+  the encoder follows when the answer accepts several codecs. VP8 stays as the fallback. Keep codec policy
+  there; never hand a raw stream to `peer.call`. One call must carry audio and video together — a video-only
+  call followed by a video+audio call renegotiates the same m-line and some Safari versions never paint the
+  video after that.
+- **An `m=` line has exactly two fixed tokens.** `m=video <port> <proto> <payloads…>`; `UDP/TLS/RTP/SAVPF`
+  is one token, so `^m=video (\S+ \S+)` captures the header and the rest is payloads. Matching a third
+  `\S+` swallows the first payload, which silently defeats any payload reordering while the rebuilt line
+  still looks valid. If SDP handling changes, check the m-line against a real `createOffer()` — the host log
+  now prints the negotiated codec per guest (`Guest ab12 video codec: video/H264`).
 - **Handheld guest mode is a size decision, not a touch decision.** `compact` is a coarse pointer, or width
   < 640, or height < 500; `handheld` is `live && compact` and hides the header, footer and stage frame so the
   feed fills the viewport with the controls floating over it. Gating it on the touch flag left phones with

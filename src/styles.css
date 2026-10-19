@@ -493,7 +493,25 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 .touch-right { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
 .touch-meta { display: flex; gap: 12px; }
-.face { display: grid; grid-template-columns: repeat(2, 70px); gap: 14px; }
+
+/* Face buttons sit in an arcade diamond: A low, B right, C high, D left. The grid is rotated as a whole so
+   the four circles land on the four points, and every label is turned back upright. */
+.face {
+  --face-size: 70px;
+  display: grid;
+  grid-template-columns: repeat(2, var(--face-size));
+  grid-template-rows: repeat(2, var(--face-size));
+  grid-template-areas: 'c b' 'd a';
+  gap: 6px;
+  /* The rotated square paints outside its layout box; this keeps the diamond inside the safe padding. */
+  margin: calc(var(--face-size) * 0.45);
+  transform: rotate(45deg);
+}
+.face .touch-btn { transform: rotate(-45deg); }
+.face .touch-btn.a { grid-area: a; }
+.face .touch-btn.b { grid-area: b; }
+.face .touch-btn.c { grid-area: c; }
+.face .touch-btn.d { grid-area: d; }
 .touch-btn {
   width: 70px;
   height: 70px;
@@ -551,9 +569,24 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 .app.guest.handheld .touch .dpad { width: 158px; height: 158px; }
 .app.guest.handheld .touch .dpad-hub { width: 40px; height: 40px; }
-.app.guest.handheld .touch .face { grid-template-columns: repeat(2, 68px); gap: 14px; }
-.app.guest.handheld .touch .touch-btn { width: 68px; height: 68px; }
+.app.guest.handheld .touch .face { --face-size: 60px; }
+.app.guest.handheld .touch .touch-btn { width: 60px; height: 60px; }
 .app.guest.handheld .touch .touch-btn.wide { width: auto; height: 42px; padding: 0 16px; }
+
+/* Portrait: the picture takes the top of the screen and the thumbs get the rest. */
+@media (orientation: portrait) {
+  .app.guest.handheld .stage { height: auto; max-height: 58dvh; aspect-ratio: 4 / 3; }
+
+  .app.guest.handheld .touch {
+    padding: 10px max(18px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
+  }
+
+  .app.guest.handheld .touch .dpad { width: 146px; height: 146px; }
+  .app.guest.handheld .touch .dpad-hub { width: 36px; height: 36px; }
+  .app.guest.handheld .touch .face { --face-size: 56px; gap: 4px; }
+  .app.guest.handheld .touch .touch-btn { width: 56px; height: 56px; font-size: 17px; }
+}
 
 .live {
   display: inline-flex;

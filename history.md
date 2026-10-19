@@ -2,6 +2,35 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — Still a white square: H.264 first, and an m-line parsing bug
+
+**The previous fix was not in the bundle.** After the codec filter landed, the phone still showed a white
+rectangle with working audio and controls. GitHub Pages was still serving `index-DMlUdt-.js`, the build from
+before the filter, so that test never exercised it. That is a deploy problem, not a codec one, but the
+report also justified making the offer stricter.
+
+**H.264 now leads the video m-line.** Safari's H.264 decoder is the most reliable one it ships, and the
+payload order of the offer is what the encoder follows when the answer accepts several codecs. `safariSafeSdp`
+(renamed from `dropUnsafeVideoCodecs`) drops VP9/AV1/HEVC and their rtx payloads, then reorders the rest so
+every H.264 payload comes before VP8. Proved against a real `createOffer()` from `canvas.captureStream()`:
+original `m=video … 96 97 102 103 104 … 114`, transformed `m=video … 102 104 106 108 127 39 96 97 103 …`,
+negotiated `video/H264`, and the answering peer decoded frames (2 frames, 1 keyframe) over a live connection.
+
+**The bug that hid it.** `m=video <port> <proto> <payloads…>` has two fixed tokens, not three —
+`UDP/TLS/RTP/SAVPF` is a single token. The old regex consumed a third `\S+`, which ate the first payload (96)
+and put it into the rebuilt header. The output happened to stay valid, which is why the first filter still
+worked, but any attempt to reorder payloads was reading a list that started at the second codec. Fixed to
+`^m=video (\S+ \S+)` and verified the transformed offer is accepted by a second Chrome peer as both a local
+description and a remote offer timeout-free.
+
+**Portrait layout.** The feed now sits at the top of the screen (`aspect-ratio: 4/3`, full width, capped at
+58dvh) instead of being centred in a full-height black box, so the picture starts where the eye looks first
+and the thumbs get the lower half. The face buttons moved from a 2x2 grid into an arcade diamond: the grid is
+rotated 45° (C top, B right, D left, A bottom) and every label is rotated back upright. Sizes drop to
+56px/146px in portrait and 60px/158px in landscape so the diamond's diagonal still fits a 360px-wide phone.
+The host also logs the negotiated codec per guest (`[Cabinet:NetHost] Guest af02 video codec: video/H264`) so
+the next report of a blank picture arrives with the codec already known.
+
 ## 2026-10-19 — Why the phone showed a white square, and an immersive guest
 
 **The white square.** An iPhone guest had audio but a white video rectangle. The offer PeerJS built from

@@ -44,11 +44,15 @@
       Atomiswave and not in FBNeo, so it paints "Romset is unknown" (2026-10-19)
 - [x] Host fps meter with a warning below 30 fps; captured video marked `contentHint = 'motion'` and the
       sender set to `maintain-framerate` so load costs sharpness, not frames (2026-10-19)
-- [x] Safari-safe video offer: `dropUnsafeVideoCodecs` strips VP9/AV1 and their rtx payloads from the
-      `sdpTransform`, leaving VP8 + H.264 for the phone; one offer carries audio and video (2026-10-19)
+- [x] Safari-safe video offer: `safariSafeSdp` strips VP9/AV1/HEVC and their rtx payloads, puts every H.264
+      payload ahead of VP8, and runs as the `sdpTransform`; one offer carries audio and video. Verified against
+      a real Chrome offer: transformed m-line negotiates `video/H264` and frames decode (2026-10-19)
+- [x] Host logs the negotiated codec per guest, and the m-line regex bug that swallowed the first payload is
+      fixed (2026-10-19)
 - [x] Immersive handheld guest: a live feed on a coarse-pointer, <640px-wide or <500px-tall screen hides
-      the header and footer, fills the viewport and floats the touch pad over it; verified at 390x844 and
-      844x390 with a synthetic d-pad/A press (2026-10-19)
+      the header and footer; portrait keeps the feed in the top half with the pad below, landscape fills the
+      viewport and floats the pad over it (2026-10-19)
+- [x] Arcade diamond for A/B/C/D (C high, B right, D left, A low), sized to fit a 360px-wide phone (2026-10-19)
 
 ## Next
 - [ ] Prove multiplayer across real devices/networks (`npm run dev -- --host` for a LAN test or use the
