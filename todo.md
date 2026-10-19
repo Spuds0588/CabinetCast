@@ -1,6 +1,9 @@
 # todo.md
 
 ## Done (MVP)
+- [x] Wordmark removed from both headers and the tab title set to Arcade; host options live behind a
+      hamburger (Copy link, QR, Keys, Widescreen, Fullscreen, Cast, Stop) that closes on a choice, an outside
+      click or Escape (2026-10-19)
 - [x] Controller-only guest (`?mode=pad`): pad and nothing else, no video or sound requested, and the host
       keeps no frame pump for it; Invite offers Watch + play or Controller only and the QR follows (2026-10-19)
 - [x] Pad layout: always horizontal (portrait rotates the stage), buttons 104/92/82/72 px for 2/3/4/5–6,

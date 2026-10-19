@@ -45,20 +45,7 @@ code { font-family: var(--mono); font-size: 0.92em; }
   display: flex;
   align-items: center;
   gap: 14px;
-  flex-wrap: wrap;
 }
-
-.brand {
-  font-family: var(--mono);
-  font-size: 15px;
-  letter-spacing: 0.22em;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.brand span { color: var(--amber); }
 
 .lamp {
   width: 9px;
@@ -103,24 +90,80 @@ code { font-family: var(--mono); font-size: 0.92em; }
   color: var(--muted);
 }
 
-/* Menu bar */
-.menubar {
+/* Hamburger menu: one small button, every host option inside. */
+.menu-wrap {
+  position: relative;
   margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
 }
 
-.menubar button {
+.menu-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 11px;
-  font-size: 13px;
+  padding: 9px 11px;
 }
 
-.menu-sep { width: 1px; min-height: 20px; align-self: stretch; background: var(--line); margin: 0 3px; }
+.hamburger {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hamburger i {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.options {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  min-width: 224px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  box-shadow: 0 24px 60px -24px #000;
+}
+
+.options button {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.options button > span:first-child { flex: 1; }
+
+/* A check column on every row keeps the labels aligned whether or not the row toggles. */
+.options button::before {
+  content: '✓';
+  width: 12px;
+  flex: none;
+  color: transparent;
+}
+
+.options button[aria-checked='true'] { color: var(--amber); }
+.options button[aria-checked='true']::before { color: var(--amber); }
+.options button:hover:not(:disabled) { background: var(--panel-2); }
+.options button:disabled { opacity: 0.4; cursor: default; }
+.options .stop { color: var(--red); }
+.options .sep { height: 1px; margin: 4px 2px; background: var(--line); }
 
 kbd {
   font-family: var(--mono);
@@ -876,9 +919,6 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 @media (max-width: 900px) {
   .app { padding: 14px 14px 22px; }
-  .menubar { width: 100%; margin-left: 0; }
-  .menubar button { flex: 1 1 auto; justify-content: center; }
-  .menubar kbd { display: none; }
   .host { grid-template-columns: minmax(0, 1fr); }
   .gate h1 { font-size: 21px; }
 }

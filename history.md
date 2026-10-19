@@ -2,6 +2,24 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — No wordmark, no menu bar: the room code and a hamburger
+
+**The name is out of the UI.** The host and guest headers no longer print CABINET CAST, the tab title is
+"Arcade", and the `.brand` styles are gone. The name stays in the repo and docs. The guest pad's small lamp
+is still there, since it is a status dot rather than branding.
+
+**Host options moved behind one button.** The top bar is the room chip on the left and a hamburger on the
+right. The dropdown holds Copy link, QR code, Keys, Widescreen, Fullscreen, Cast to a TV, and Stop game (only
+while a game is running). Toggle rows use `aria-checked` and the amber tick; every choice closes the menu, as
+do a click outside and Escape. The old wrapping menu bar and its 900px rule are removed, so the header stays
+one row at phone widths.
+
+**Verified:** `npm run build` passes with `pipefail`. The host header contains only ROOM and the code plus the
+menu button; the six idle items render, and Stop game appears in red while a ROM is running. Widescreen
+flips the cabinet to `.wide` and persists, QR opens from the menu, outside click and Escape both close it,
+and Stop game returns to the insert-cartridge gate. Checked at 779px and 390px wide; the guest header shows
+the room and connection state without the wordmark.
+
 ## 2026-10-19 — Casting is Chrome's tab mirror, not a receiver page
 
 **The receiver page could not reach a Chromecast.** `?mode=cast` was an ordinary guest page: it needed a

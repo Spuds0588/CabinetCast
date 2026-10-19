@@ -34,6 +34,7 @@ export function HostView() {
   const [saves, setSaves] = useState<Partial<Record<SaveSlot, number>>>({})
   const [saveStatus, setSaveStatus] = useState('')
   const [castOpen, setCastOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [preset, setPreset] = useState<FramePreset>(() => loadPreset())
   const [buttonCount, setButtonCount] = useState(4)
   // Which link the Invite panel hands out: a guest who watches, or a phone used as a controller.
@@ -45,6 +46,7 @@ export function HostView() {
 
   const slots = useRef(new Slots()).current
   const cabinet = useRef<HTMLElement>(null)
+  const menu = useRef<HTMLDivElement>(null)
   const host = useRef<HostNet | null>(null)
   const session = useRef<ArcadeSession | null>(null)
   const keyboard = useRef<ReturnType<typeof createKeyboard> | null>(null)
@@ -59,7 +61,28 @@ export function HostView() {
   // Set by the Saves panel's forget button: no more auto-saves for this session, so the next launch is fresh.
   const autoPaused = useRef(false)
 
+  // The menu is the only host chrome left, so it closes on a click elsewhere or Escape.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointer = (event: PointerEvent) => {
+      if (!menu.current?.contains(event.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setMenuOpen(false)
+    addEventListener('pointerdown', onPointer)
+    addEventListener('keydown', onKey)
+    return () => {
+      removeEventListener('pointerdown', onPointer)
+      removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
   const refresh = () => setTick((value) => value + 1)
+
+  /** Every menu entry dismisses the menu, so the screen is clear again the moment a choice is made. */
+  const choose = (action: () => void) => () => {
+    setMenuOpen(false)
+    action()
+  }
 
   /** Stream quality is the host's call: bigger frames look softer-or-sharper on a TV, lower ones
    *  keep the frame rate when the guest is on a phone over a weak link. */
@@ -410,50 +433,59 @@ export function HostView() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          <span className="lamp" />
-          CABINET<span>CAST</span>
-        </div>
         <div className="room">
           <span className="label">room</span>
           <b>{code || '····'}</b>
         </div>
-        <nav className="menubar" aria-label="Cabinet controls">
-          <button className="ghost" onClick={copyInvite} disabled={!code}>
-            {copied ? 'Copied ✓' : 'Copy link'}
-          </button>
-          <button className="ghost" onClick={() => setQrOpen(true)} disabled={!code}>
-            QR code
-          </button>
-          <button className="ghost" onClick={() => setKeysOpen(true)} title="Default keyboard keys (?)">
-            Keys <kbd>?</kbd>
-          </button>
-          <span className="menu-sep" aria-hidden />
+        <div className="menu-wrap" ref={menu}>
           <button
-            className="ghost"
-            aria-pressed={wide}
-            onClick={toggleWide}
-            title="Stretch the core's 4:3 picture to 16:9 (Shift+W)"
+            className="ghost menu-btn"
+            aria-label="Cabinet options"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
           >
-            Widescreen <kbd>⇧W</kbd>
+            <span className="hamburger" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
           </button>
-          <button
-            className="ghost"
-            aria-pressed={fullscreen.active}
-            onClick={fullscreen.toggle}
-            title="Fullscreen (Shift+F)"
-          >
-            Fullscreen <kbd>⇧F</kbd>
-          </button>
-          <button className="ghost" onClick={() => setCastOpen(true)} title="How to put this tab on a TV">
-            Cast
-          </button>
-          {status === 'running' && (
-            <button className="ghost stop" onClick={stopGame}>
-              Stop
-            </button>
+          {menuOpen && (
+            <div className="options" role="menu" aria-label="Cabinet options">
+              <button role="menuitem" onClick={choose(copyInvite)} disabled={!code}>
+                <span>{copied ? 'Copied ✓' : 'Copy link'}</span>
+              </button>
+              <button role="menuitem" onClick={choose(() => setQrOpen(true))} disabled={!code}>
+                <span>QR code</span>
+              </button>
+              <button role="menuitem" onClick={choose(() => setKeysOpen(true))}>
+                <span>Keys</span>
+                <kbd>?</kbd>
+              </button>
+              <span className="sep" role="separator" />
+              <button role="menuitemcheckbox" aria-checked={wide} onClick={choose(toggleWide)}>
+                <span>Widescreen</span>
+                <kbd>⇧W</kbd>
+              </button>
+              <button role="menuitemcheckbox" aria-checked={fullscreen.active} onClick={choose(() => void fullscreen.toggle())}>
+                <span>Fullscreen</span>
+                <kbd>⇧F</kbd>
+              </button>
+              <button role="menuitem" onClick={choose(() => setCastOpen(true))}>
+                <span>Cast to a TV</span>
+              </button>
+              {status === 'running' && (
+                <>
+                  <span className="sep" role="separator" />
+                  <button role="menuitem" className="stop" onClick={choose(stopGame)}>
+                    <span>Stop game</span>
+                  </button>
+                </>
+              )}
+            </div>
           )}
-        </nav>
+        </div>
       </header>
 
       <main className="host">

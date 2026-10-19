@@ -29,9 +29,10 @@ it is the only port with keys of its own.
 Press `?` (or the Keys button) for player 1's keys: WASD + `J K L U I O`, `Space` coin, `Enter` start. The
 host keyboard is player 1 only: players 2–4 need their own device, a gamepad or a phone joining the room.
 
-The top menu bar has the invite link, QR code, widescreen and fullscreen toggles, and Stop. Fullscreen is
-`Shift+F`, widescreen is `Shift+W`. Widescreen stretches the core's 4:3 picture to 16:9 for viewers who
-prefer a filled screen; FBNeo has no true widescreen render mode, and the stream itself stays 4:3.
+The host bar shows the room code and a menu button. The menu holds Copy link, QR code, Keys, the widescreen
+and fullscreen toggles, Cast, and Stop game. Fullscreen is `Shift+F`, widescreen is `Shift+W`. Widescreen
+stretches the core's 4:3 picture to 16:9 for viewers who prefer a filled screen; FBNeo has no true widescreen
+render mode, and the stream itself stays 4:3.
 
 ## What it is built on
 

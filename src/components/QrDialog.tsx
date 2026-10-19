@@ -65,7 +65,7 @@ export function QrDialog({ invite, code, onClose }: Props) {
   const download = () => {
     const anchor = document.createElement('a')
     anchor.href = png
-    anchor.download = `cabinetcast-${code || 'invite'}.png`
+    anchor.download = `invite-${code || 'arcade'}.png`
     anchor.click()
   }
 

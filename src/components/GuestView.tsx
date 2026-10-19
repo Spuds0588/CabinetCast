@@ -194,10 +194,6 @@ export function GuestView({ code, pad = false }: { code: string; pad?: boolean }
   return (
     <div className={handheld ? 'app guest handheld' : 'app guest'}>
       <header className="topbar">
-        <div className="brand">
-          <span className="lamp" />
-          CABINET<span>CAST</span>
-        </div>
         <div className="room">
           <span className="label">room</span>
           <b>{code || '····'}</b>
