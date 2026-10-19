@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getBios, saveBios } from '../core/bios'
 import { launchArcade, type ArcadeSession } from '../core/emulator'
 import { createKeyboard, padLabel, padMask, pads } from '../core/input'
+import { FRAME_PRESETS, type FramePreset } from '../core/protocol'
 import { ago, deleteSave, getSave, putSave, romKey, saveTimes, type SaveSlot } from '../core/saves'
 import { Slots, type Source } from '../core/slots'
 import { useFullscreen, useViewShortcuts, useWidescreen } from '../core/view'
@@ -11,6 +12,11 @@ import { QrDialog } from './QrDialog'
 import { SlotPanel } from './SlotPanel'
 
 type Status = 'starting' | 'idle' | 'loading' | 'running' | 'error'
+
+const PRESET_KEY = 'cabinetcast:frame-preset'
+
+const loadPreset = (): FramePreset =>
+  FRAME_PRESETS.find((candidate) => candidate.id === localStorage.getItem(PRESET_KEY)) ?? FRAME_PRESETS[0]
 
 export function HostView() {
   const [code, setCode] = useState('')
@@ -26,6 +32,7 @@ export function HostView() {
   const [keysOpen, setKeysOpen] = useState(false)
   const [saves, setSaves] = useState<Partial<Record<SaveSlot, number>>>({})
   const [saveStatus, setSaveStatus] = useState('')
+  const [preset, setPreset] = useState<FramePreset>(() => loadPreset())
   const [wide, toggleWide] = useWidescreen()
   const fullscreen = useFullscreen(() => cabinet.current)
   useViewShortcuts({ fullscreen: fullscreen.toggle, widescreen: toggleWide })
@@ -39,11 +46,22 @@ export function HostView() {
   const knownPads = useRef(new Set<number>())
   const fileInput = useRef<HTMLInputElement>(null)
   const romKeyRef = useRef('')
+  const presetRef = useRef(preset)
+  presetRef.current = preset
   const savingRef = useRef(false)
   // Set by the Saves panel's forget button: no more auto-saves for this session, so the next launch is fresh.
   const autoPaused = useRef(false)
 
   const refresh = () => setTick((value) => value + 1)
+
+  /** Stream quality is the host's call: bigger frames look softer-or-sharper on a TV, lower ones
+   *  keep the frame rate when the guest is on a phone over a weak link. */
+  const applyPreset = (next: FramePreset) => {
+    setPreset(next)
+    localStorage.setItem(PRESET_KEY, next.id)
+    session.current?.setFrameSize(next.width, next.height)
+    host.current?.setFrameOptions({ quality: next.quality })
+  }
 
   const refreshSaves = async (key: string) => setSaves(await saveTimes(key))
 
@@ -234,6 +252,7 @@ export function HostView() {
       session.current = null
       const bios = await getBios()
       const next = await launchArcade(file, bios)
+      next.setFrameSize(presetRef.current.width, presetRef.current.height)
       session.current = next
       romKeyRef.current = romKey(file)
       setRom(next.romName)
@@ -249,6 +268,7 @@ export function HostView() {
           setTimeout(publish, 120)
           return
         }
+        host.current?.setFrameOptions({ quality: presetRef.current.quality })
         host.current?.setCanvas(next.getCanvas())
         host.current?.setAudio(audio)
       }
@@ -500,6 +520,29 @@ export function HostView() {
                 Host is drawing {fps} fps. Keep this tab in front; browsers throttle a background tab.
               </p>
             )}
+          </div>
+
+          <div className="panel">
+            <div className="panel-head">
+              <h2>Stream quality</h2>
+              <span className="count">{preset.width}×{preset.height}</span>
+            </div>
+            <div className="row">
+              {FRAME_PRESETS.map((option) => (
+                <button
+                  key={option.id}
+                  className={option.id === preset.id ? 'primary' : 'ghost'}
+                  aria-pressed={option.id === preset.id}
+                  onClick={() => applyPreset(option)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="muted small">
+              Frames are sent as JPEGs, so bigger ones cost bandwidth but not much CPU. The core draws 384×288;
+              the wider presets only give the picture a finer grid and a softer stretch on a big screen.
+            </p>
           </div>
 
           <div className="panel">

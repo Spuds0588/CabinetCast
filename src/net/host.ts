@@ -53,6 +53,8 @@ export class HostNet {
   private audio: MediaStream | null = null
   private audioSignature = ''
   private canvas: HTMLCanvasElement | null = null
+  /** JPEG quality the host asked for; the pump drops below it only under channel pressure. */
+  private quality = FRAME_QUALITY
   private opened!: Promise<void>
   private closed = false
 
@@ -162,7 +164,7 @@ export class HostNet {
     let sampled = performance.now()
     // PeerJS gives an unordered channel but still retransmits, so a congested link shows up as a
     // growing buffer. Hold the frame, and trade quality before resolution when that happens.
-    let quality = FRAME_QUALITY
+    let quality = this.quality
     let pressure = 0
 
     const tick = async () => {
@@ -176,7 +178,7 @@ export class HostNet {
       }
       if (pressure > 0) {
         pressure -= 1
-        if (pressure === 0) quality = FRAME_QUALITY
+        if (pressure === 0) quality = this.quality
       }
       busy = true
       try {
@@ -253,6 +255,12 @@ export class HostNet {
   /** The relay the frame pump encodes. Setting it starts pumps for guests already connected. */
   setCanvas(canvas: HTMLCanvasElement) {
     this.canvas = canvas
+    for (const id of this.conns.keys()) this.startFrames(id)
+  }
+
+  /** Change the JPEG quality and restart the pumps so every guest uses it immediately. */
+  setFrameOptions(options: { quality: number }) {
+    this.quality = Math.min(0.95, Math.max(0.3, options.quality))
     for (const id of this.conns.keys()) this.startFrames(id)
   }
 

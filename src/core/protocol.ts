@@ -49,6 +49,19 @@ export const FRAME_TAG = 0xca
 /** Tag (1 byte) + capture time as a float64 in epoch milliseconds (8 bytes). */
 export const FRAME_HEADER = 9
 
+/**
+ * What a host trades for smoothness. FBNeo draws 384x288, so the wider presets add no detail, only a
+ * finer JPEG grid and softer upscaling on a big screen; they cost bandwidth in proportion.
+ */
+export const FRAME_PRESETS = [
+  { id: 'low', label: 'Low', width: 384, height: 288, quality: 0.6 },
+  { id: 'balanced', label: 'Balanced', width: 512, height: 384, quality: 0.72 },
+  { id: 'sharp', label: 'Sharp', width: 768, height: 576, quality: 0.8 },
+] as const
+
+export type FramePreset = (typeof FRAME_PRESETS)[number]
+export type FrameOptions = { width: number; height: number; quality: number }
+
 /** Keys are listed in player order (B1..B6 = A..F), then mapped onto RetroArch's joypad names. */
 const pad = (up: string, down: string, left: string, right: string, b1: string, b2: string, b3: string, b4: string, b5: string, b6: string, select: string, start: string) =>
   ({ up, down, left, right, y: b1, b: b2, a: b3, x: b4, l: b5, r: b6, select, start })

@@ -514,7 +514,8 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 /* The host's 4:3 stream, stretched to 16:9 on this screen only. */
 .stage.wide { aspect-ratio: 16 / 9; }
-.stage.wide .frames { object-fit: fill; }
+/* Sideways phones and the Widescreen toggle: the picture takes the whole panel. */
+.stage.fill .frames { object-fit: fill; }
 .stage:fullscreen { border: 0; border-radius: 0; max-height: none; }
 
 /* Shown only while the stream is connected and the guest's decoder has not produced a frame. */
@@ -664,6 +665,8 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 /* Keep the 4:3 picture's shape; the transparent controls sit over the letterbox bars. */
 .app.guest.handheld .stage .frames { object-fit: contain; }
+/* ...unless the phone is sideways, where the picture takes the whole panel. */
+.app.guest.handheld .stage.fill .frames { object-fit: fill; }
 
 .app.guest.handheld .stage .sound {
   top: max(10px, env(safe-area-inset-top));
@@ -673,6 +676,25 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   transform: none;
   padding: 6px 11px;
   font-size: 11px;
+}
+
+/* The handheld layout has no footer, so fullscreen needs its own control over the picture. */
+.stage-fullscreen {
+  position: absolute;
+  z-index: 45;
+  top: max(52px, calc(env(safe-area-inset-top) + 42px));
+  right: max(18px, env(safe-area-inset-right));
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 12, 18, 0.55);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
 }
 
 .app.guest.handheld .touch {

@@ -6,8 +6,10 @@ export interface ArcadeSession {
   romName: string
   /** Audio only: pictures now travel as frames over the data channel, the call carries sound. */
   getAudio(): MediaStream
-  /** The fixed 384x288 relay the frame pump encodes. */
+  /** The relay the frame pump encodes; its size is the stream resolution. */
   getCanvas(): HTMLCanvasElement
+  /** Resize that relay. The core still renders 384x288; this only changes the picture's grid. */
+  setFrameSize(width: number, height: number): void
   /** Apply one port's 12-bit input mask, injecting only the bits that changed. */
   inject(port: number, mask: number): void
   /** Snapshot the whole core, including SRAM and the current frame. */
@@ -80,6 +82,11 @@ export async function launchArcade(file: File, bios?: Blob): Promise<ArcadeSessi
     romName: file.name,
     getAudio,
     getCanvas: () => relay,
+    setFrameSize(width, height) {
+      if (relay.width === width && relay.height === height) return
+      relay.width = width
+      relay.height = height
+    },
     async saveState() {
       const { state } = await emulator.saveState()
       return state

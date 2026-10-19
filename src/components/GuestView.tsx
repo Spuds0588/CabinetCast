@@ -26,6 +26,7 @@ export function GuestView({ code }: { code: string }) {
   const [ownKind, setOwnKind] = useState<InputKind>('keyboard')
   // Phones and small windows get the handheld layout: game only, controls over it, no chrome.
   const [compact, setCompact] = useState(() => matchMedia('(pointer: coarse)').matches || innerWidth < 640 || innerHeight < 500)
+  const [landscape, setLandscape] = useState(() => innerWidth > innerHeight)
   const [wide, toggleWide] = useWidescreen()
   const [keysOpen, setKeysOpen] = useState(false)
   // Frames per second and capture-to-paint delay, sampled once a second from the decoder itself.
@@ -48,8 +49,13 @@ export function GuestView({ code }: { code: string }) {
   sink.current = (bitmap, latency) => {
     const canvas = picture.current
     if (canvas) {
+      // The host picks the frame size; follow it instead of assuming 384x288.
+      if (canvas.width !== bitmap.width || canvas.height !== bitmap.height) {
+        canvas.width = bitmap.width
+        canvas.height = bitmap.height
+      }
       const context = canvas.getContext('2d')
-      context?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+      context?.drawImage(bitmap, 0, 0)
     }
     bitmap.close()
     frameCount.current += 1
@@ -92,7 +98,10 @@ export function GuestView({ code }: { code: string }) {
   }, [])
 
   useEffect(() => {
-    const update = () => setCompact(matchMedia('(pointer: coarse)').matches || innerWidth < 640 || innerHeight < 500)
+    const update = () => {
+      setCompact(matchMedia('(pointer: coarse)').matches || innerWidth < 640 || innerHeight < 500)
+      setLandscape(innerWidth > innerHeight)
+    }
     addEventListener('resize', update)
     return () => removeEventListener('resize', update)
   }, [])
@@ -141,6 +150,10 @@ export function GuestView({ code }: { code: string }) {
   // A live feed on a phone-sized screen gets the cabinet and nothing else; the toggle only matters on desktop.
   const handheld = live && compact
   const showTouch = live && (touch || compact)
+  // Sideways phones should use the whole panel: the 4:3 picture is stretched to the viewport, the same
+  // transform the Widescreen button applies. Turn widescreen off to get the original arcade shape.
+  const fill = wide || (handheld && landscape)
+  const canFullscreen = Boolean(document.fullscreenEnabled || document.documentElement.requestFullscreen)
 
   // Never leave a held touch button latched when the overlay is hidden or the feed stops.
   useEffect(() => {
@@ -170,7 +183,7 @@ export function GuestView({ code }: { code: string }) {
         </div>
       </header>
 
-      <div ref={stage} className={wide ? 'stage wide' : 'stage'}>
+      <div ref={stage} className={['stage', wide && 'wide', fill && 'fill'].filter(Boolean).join(' ')}>
         <canvas ref={picture} className="frames" width={384} height={288} />
         {/* Sound only; the picture is painted from frames. */}
         <video ref={video} autoPlay playsInline muted={!sound} />
@@ -192,6 +205,18 @@ export function GuestView({ code }: { code: string }) {
         {painted && !sound && (
           <button className="sound" onClick={enableSound}>
             Tap for sound
+          </button>
+        )}
+
+        {/* The handheld layout hides the footer, so fullscreen needs its own control there. */}
+        {handheld && canFullscreen && (
+          <button
+            className="stage-fullscreen"
+            onClick={fullscreen.toggle}
+            aria-label={fullscreen.active ? 'Exit fullscreen' : 'Fullscreen'}
+            title={fullscreen.active ? 'Exit fullscreen' : 'Fullscreen'}
+          >
+            {fullscreen.active ? '⤡' : '⛶'}
           </button>
         )}
 
