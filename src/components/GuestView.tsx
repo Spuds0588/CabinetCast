@@ -14,7 +14,6 @@ export function GuestView({ code }: { code: string }) {
   const [status, setStatus] = useState<GuestStatus>('connecting')
   const [detail, setDetail] = useState('')
   const [port, setPort] = useState(-1)
-  const [rtt, setRtt] = useState<number | null>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [sound, setSound] = useState(false)
 
@@ -29,7 +28,6 @@ export function GuestView({ code }: { code: string }) {
       },
       onStream: setStream,
       onSlot: setPort,
-      onLatency: setRtt,
     })
     net.current = guest
     return () => {
@@ -89,7 +87,6 @@ export function GuestView({ code }: { code: string }) {
         <div className="statusline">
           {live && <span className="live">LIVE</span>}
           <span>{STATUS_TEXT[status]}</span>
-          {rtt !== null && <span className="tag">{rtt} ms</span>}
         </div>
       </header>
 

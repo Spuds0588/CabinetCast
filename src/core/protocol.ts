@@ -15,8 +15,6 @@ export const INPUT_BITS = {
   START: 1 << 11,
 } as const
 
-export const bitNames = Object.entries(INPUT_BITS).map(([name, bit]) => ({ name, bit }))
-
 /** Bit -> RetroArch joypad button name, in the order laid out by CabinetCast.md §2.2. */
 export const BIT_TO_JOYPAD: [number, string][] = [
   [INPUT_BITS.UP, 'up'],
@@ -93,12 +91,8 @@ export const KEY_BITS: Record<string, number>[] = PORT_KEYS.map((keys) =>
 )
 
 export const ENDPOINT = (code: string) => `cab-${code}`
-export const ROOM_CODE_ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz'
+const ROOM_CODE_ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz'
 export const randomCode = (length = 5) =>
   Array.from({ length }, () => ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)]).join('')
 
-export type HostMessage =
-  | { t: 'pong'; ts: number }
-  | { t: 'slot'; port: number; spectator: boolean }
-
-export type GuestMessage = { t: 'ping'; ts: number } | { t: 'stat'; rtt: number }
+export type HostMessage = { t: 'slot'; port: number; spectator: boolean }

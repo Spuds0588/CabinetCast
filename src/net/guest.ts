@@ -1,5 +1,5 @@
 import Peer, { type DataConnection, type PeerError } from 'peerjs'
-import { ENDPOINT, type GuestMessage, type HostMessage } from '../core/protocol'
+import { ENDPOINT, type HostMessage } from '../core/protocol'
 
 const ICE = {
   iceServers: [
@@ -14,7 +14,6 @@ export interface GuestEvents {
   onStatus(status: GuestStatus, detail?: string): void
   onStream(stream: MediaStream): void
   onSlot(port: number): void
-  onLatency(ms: number): void
 }
 
 const log = (message: string) => console.log(`[Cabinet:NetGuest] ${message}`)
@@ -22,8 +21,6 @@ const log = (message: string) => console.log(`[Cabinet:NetGuest] ${message}`)
 export class GuestNet {
   private readonly peer: Peer
   private conn: DataConnection | null = null
-  private pings = 0
-  private timer: ReturnType<typeof setInterval> | null = null
   private destroyed = false
 
   constructor(private readonly code: string, private readonly events: GuestEvents) {
@@ -37,7 +34,6 @@ export class GuestNet {
       conn.on('open', () => {
         log(`Connected to room "${code}"`)
         this.events.onStatus('connected')
-        this.startPing()
       })
       conn.on('close', () => !this.destroyed && this.events.onStatus('error', 'host closed the connection'))
       conn.on('data', (data) => this.receive(data))
@@ -64,25 +60,9 @@ export class GuestNet {
     try {
       const message = JSON.parse(data) as HostMessage
       if (message.t === 'slot') this.events.onSlot(message.port)
-      if (message.t === 'pong') {
-        const rtt = Math.round(performance.now() - message.ts)
-        this.events.onLatency(rtt)
-        if (this.pings % 5 === 0) this.send({ t: 'stat', rtt })
-      }
     } catch {
       /* ignore malformed control messages */
     }
-  }
-
-  private startPing() {
-    this.timer = setInterval(() => {
-      this.pings += 1
-      this.send({ t: 'ping', ts: performance.now() })
-    }, 1000)
-  }
-
-  private send(message: GuestMessage) {
-    if (this.conn?.open) this.conn.send(JSON.stringify(message))
   }
 
   /** Send a 2-byte input frame for this guest's assigned port. */
@@ -92,7 +72,6 @@ export class GuestNet {
 
   destroy() {
     this.destroyed = true
-    if (this.timer) clearInterval(this.timer)
     this.conn?.close()
     this.peer.destroy()
   }

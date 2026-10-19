@@ -1,5 +1,5 @@
 import Peer, { type DataConnection, type MediaConnection } from 'peerjs'
-import { ENDPOINT, randomCode, type GuestMessage, type HostMessage } from '../core/protocol'
+import { ENDPOINT, randomCode, type HostMessage } from '../core/protocol'
 
 const ICE = {
   iceServers: [
@@ -11,7 +11,6 @@ const ICE = {
 export interface HostPeer {
   id: string
   port: number
-  rtt: number | null
 }
 
 export interface HostEvents {
@@ -28,7 +27,6 @@ export class HostNet {
   private readonly peer: Peer
   private readonly conns = new Map<string, DataConnection>()
   private readonly calls = new Map<string, MediaConnection>()
-  private readonly rtts = new Map<string, number | null>()
   private readonly ports = new Map<string, number>()
   private stream: MediaStream | null = null
   private streamSignature = ''
@@ -73,7 +71,6 @@ export class HostNet {
   private accept(conn: DataConnection) {
     const id = conn.peer
     this.conns.set(id, conn)
-    this.rtts.set(id, null)
     // PeerJS opens a fresh connection per guest; drop any stale one for the same id first.
     conn.on('open', () => {
       log(`Guest ${id} connected`)
@@ -89,17 +86,6 @@ export class HostNet {
   private receive(id: string, data: unknown) {
     if (data instanceof ArrayBuffer) return this.events.onInput(id, new DataView(data).getUint16(0, true))
     if (data instanceof Uint8Array) return this.events.onInput(id, (data[0] ?? 0) | ((data[1] ?? 0) << 8))
-    if (typeof data !== 'string') return
-    try {
-      const message = JSON.parse(data) as GuestMessage
-      if (message.t === 'ping') this.send(id, { t: 'pong', ts: message.ts })
-      if (message.t === 'stat') {
-        this.rtts.set(id, message.rtt)
-        this.roster()
-      }
-    } catch {
-      /* ignore malformed control messages */
-    }
   }
 
   private drop(id: string) {
@@ -108,7 +94,6 @@ export class HostNet {
     this.calls.get(id)?.close()
     this.calls.delete(id)
     this.callSignatures.delete(id)
-    this.rtts.delete(id)
     this.ports.delete(id)
     this.events.onLeave(id)
     this.roster()
@@ -150,9 +135,7 @@ export class HostNet {
   }
 
   roster() {
-    this.events.onRoster(
-      [...this.conns.keys()].map((id) => ({ id, port: this.ports.get(id) ?? -1, rtt: this.rtts.get(id) ?? null })),
-    )
+    this.events.onRoster([...this.conns.keys()].map((id) => ({ id, port: this.ports.get(id) ?? -1 })))
   }
 
   destroy() {

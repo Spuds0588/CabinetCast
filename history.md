@@ -2,6 +2,22 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-18 — Pruned the dead weight (−71 lines, no behavior change)
+
+**Deleted:** `bitNames` (never read), the `PeerSlot` type with the `Slots.peers` field it existed for,
+`Slots.label()` (no caller), and the whole RTT feature: the `ping` / `pong` / `stat` messages, the host's
+`rtts` map and JSON branch in `receive()`, the guest's ping timer and `send()`, `onLatency`, and both
+latency readouts. **The RTT badge is gone from the guest header and the roster** — no machinery is left
+behind for it, and `ROOM_CODE_ALPHABET` is no longer exported.
+
+**Also simplified:** `Slots.assignPeer()` used to keep a second copy of the peer→port map just to spot a
+re-join; it now asks `portOf()` directly, which was already the single source of truth.
+
+**Verified after pruning:** the room still opens, a guest still connects, receives `audio+video` (300x225
+frames), is assigned P2, and its held `ArrowLeft` lights only the P2 slot on the host. Roster reads
+`Guest 4dcc P2` with no latency tag and no `ms` text anywhere in the UI. `tsc --noEmit` and `vite build`
+clean; no unused exports and no dead CSS classes remain in `src/`.
+
 ## 2026-10-18 — Audit, per-port keyboard fix, docs corrected
 
 **Defect fixed:** every "Local keyboard" slot replayed P1's input. `createKeyboard()` accumulated

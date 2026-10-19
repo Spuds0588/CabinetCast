@@ -51,7 +51,7 @@ export function SlotPanel({ slots, peers, onChange, tick }: Props) {
               ))}
               {peers.map((peer) => (
                 <option key={peer.id} value={`peer:${peer.id}`}>
-                  Guest {peer.id.slice(-4)} {peer.rtt === null ? '' : `(${peer.rtt}ms)`}
+                  Guest {peer.id.slice(-4)}
                 </option>
               ))}
             </select>
@@ -68,7 +68,6 @@ export function SlotPanel({ slots, peers, onChange, tick }: Props) {
               <span className="dot" />
               <span className="grow">Guest {peer.id.slice(-4)}</span>
               <span className="tag">{peer.port === -1 ? 'spectator' : `P${peer.port + 1}`}</span>
-              <span className="tag">{peer.rtt === null ? 'live' : `${peer.rtt} ms`}</span>
             </li>
           ))}
         </ul>

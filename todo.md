@@ -14,6 +14,8 @@
 - [x] GitHub Pages workflow → live at https://spuds0588.github.io/CabinetCast/ (run 39137299796)
 - [x] Injection into the core verified against real emulated output: P1 coin+start changed 77.8% of the
       guest frame (attract → play); guest P2 coin×2+start changed 49.8% against a 1.1% idle control
+- [x] Pruned dead code (`bitNames`, `PeerSlot` + `Slots.peers`, `Slots.label`) and the RTT ping/stat
+      machinery with its badge; no unused exports or CSS left in `src/`
 
 ## Next
 - [ ] Exercise the deployed site with a real ROM: the live page has never been given a file, only the
@@ -23,8 +25,6 @@
 - [ ] Prove multiplayer across two machines/networks; only same-browser host+guest has been tested, and
       only STUN is configured
 - [ ] Ports 3 and 4 have never been assigned a real peer
-- [ ] Delete dead code: `bitNames`, `PeerSlot`, and the ping/pong + `stat` messages that only feed the
-      RTT badge
 - [ ] 8 player ports: needs an input path other than per-player keyboard binds (see agents.md)
 - [ ] Touch controls for mobile guests (d-pad + 4 buttons overlay)
 - [ ] Mute / volume for the host, and a "fullscreen cabinet" toggle for guests
