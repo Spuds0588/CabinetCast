@@ -11,7 +11,8 @@
 - [x] Per-port local keyboard: each port's reader derives from `PORT_KEYS`, so a keyboard slot cannot
       replay another port's input (verified 2026-10-18)
 - [x] neogeo.zip stored in IndexedDB and auto-attached
-- [x] GitHub Pages workflow → live at https://spuds0588.github.io/CabinetCast/ (run 39137299796)
+- [x] GitHub Pages workflow → live at https://spuds0588.github.io/CabinetCast/
+      (bundle `index-_piwFEK8.js`, commit `7594054`, run `39183112725` success)
 - [x] Injection into the core verified against real emulated output: P1 coin+start changed 77.8% of the
       guest frame (attract → play); guest P2 coin×2+start changed 49.8% against a 1.1% idle control
 - [x] Pruned dead code (`bitNames`, `PeerSlot` + `Slots.peers`, `Slots.label`) and the RTT ping/stat

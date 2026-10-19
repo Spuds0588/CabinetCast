@@ -18,6 +18,11 @@ frames), is assigned P2, and its held `ArrowLeft` lights only the P2 slot on the
 `Guest 4dcc P2` with no latency tag and no `ms` text anywhere in the UI. `tsc --noEmit` and `vite build`
 clean; no unused exports and no dead CSS classes remain in `src/`.
 
+**Delivered:** commit `7594054a6b0ce8a9f7cd440442c9b919146f9d8f` on `main`, deployed by workflow run
+`39183112725` (“Deploy to GitHub Pages”, success). Production serves that build as
+`assets/index-_piwFEK8.js`; the live host UI opens a PeerJS room and a dead invite link still lands on
+“Room not found”.
+
 ## 2026-10-18 — Audit, per-port keyboard fix, docs corrected
 
 **Defect fixed:** every "Local keyboard" slot replayed P1's input. `createKeyboard()` accumulated
