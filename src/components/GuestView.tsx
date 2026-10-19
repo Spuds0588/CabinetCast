@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { createKeyboard, padKind, padMask } from '../core/input'
 import type { InputKind } from '../core/protocol'
+import type { CodecPin, VideoHealth } from '../core/protocol'
 import { useFullscreen, useViewShortcuts, useWidescreen } from '../core/view'
 import { GuestNet, type GuestStatus } from '../net/guest'
 import { InputIcon } from './InputIcon'
 import { KeyHelp, useHelpShortcut } from './KeyHelp'
 import { TouchControls } from './TouchControls'
+
+const APPLE = /iPad|iPhone|iPod/.test(navigator.userAgent)
+/** Codecs to try in order when no picture arrives. Apple's reliable decoder is H.264, Chromium's VP8. */
+const LADDER: CodecPin[] = APPLE ? ['h264', 'vp8', 'auto'] : ['vp8', 'h264', 'auto']
+// Long enough that a slow first call is not mistaken for a broken decoder; the phone failure is persistent.
+const RETRY_AFTER = 8_000
+const PIN_LABEL: Record<CodecPin, string> = { auto: 'auto', vp8: 'VP8', h264: 'H.264' }
+
+const nextPinAfter = (pin: CodecPin | undefined) => LADDER[(LADDER.indexOf(pin ?? 'auto') + 1) % LADDER.length]
 
 const STATUS_TEXT: Record<GuestStatus, string> = {
   connecting: 'Opening secure channel…',
@@ -27,6 +37,12 @@ export function GuestView({ code }: { code: string }) {
   const [compact, setCompact] = useState(() => matchMedia('(pointer: coarse)').matches || innerWidth < 640 || innerHeight < 500)
   const [wide, toggleWide] = useWidescreen()
   const [keysOpen, setKeysOpen] = useState(false)
+  const [health, setHealth] = useState<VideoHealth | null>(null)
+  // Consecutive second-long samples with no decoded frame; one is just a call that is still starting.
+  const [stalled, setStalled] = useState(0)
+  const attempts = useRef(0)
+  const lastRetry = useRef(0)
+  const debug = new URLSearchParams(location.search).has('debug')
   const fullscreen = useFullscreen(() => stage.current)
   useViewShortcuts({ fullscreen: fullscreen.toggle, widescreen: toggleWide })
   useHelpShortcut(setKeysOpen)
@@ -44,17 +60,58 @@ export function GuestView({ code }: { code: string }) {
       },
       onStream: setStream,
       onSlot: setPort,
+      onHealth: setHealth,
+      videoState: () => {
+        const element = video.current
+        if (!element) return 'missing'
+        if (element.error) return 'error'
+        return element.paused ? 'paused' : element.readyState < 3 ? 'waiting' : 'playing'
+      },
     })
     net.current = guest
+    if (new URLSearchParams(location.search).has('debug')) Object.assign(globalThis, { __guestNet: guest })
     return () => {
       guest.destroy()
       net.current = null
     }
   }, [code])
 
+  // Assign the stream and start it explicitly: a phone that ignores the autoplay attribute still plays
+  // once play() is called inside the same tap-free path that delivered the stream.
   useEffect(() => {
-    if (video.current && stream) video.current.srcObject = stream
+    if (!video.current || !stream) return
+    video.current.srcObject = stream
+    video.current.play().catch(() => undefined)
+    // Give a fresh call its full window before the watchdog asks for a different codec.
+    lastRetry.current = Date.now()
   }, [stream])
+
+  // A live stream whose decoder reports zero frames is the video codec, not the connection. Ask the host
+  // to re-offer pinned to the other codec instead of leaving a white rectangle on screen.
+  useEffect(() => {
+    if (!stream || !health) return
+    if (health.frames > 0) {
+      attempts.current = 0
+      return
+    }
+    const now = Date.now()
+    // Two automatic switches are enough; after that the player decides with the button.
+    if (now - lastRetry.current < RETRY_AFTER || attempts.current >= 2) return
+    lastRetry.current = now
+    attempts.current += 1
+    net.current?.retryVideo(nextPinAfter(health.pin))
+  }, [health, stream])
+
+  useEffect(() => {
+    if (!health) return
+    setStalled((count) => (health.frames > 0 ? 0 : count + 1))
+  }, [health])
+
+  const retryNow = () => {
+    lastRetry.current = Date.now()
+    attempts.current = attempts.current >= 2 ? 0 : attempts.current + 1
+    net.current?.retryVideo(nextPinAfter(health?.pin))
+  }
 
   useEffect(() => {
     const update = () => setCompact(matchMedia('(pointer: coarse)').matches || innerWidth < 640 || innerHeight < 500)
@@ -103,6 +160,9 @@ export function GuestView({ code }: { code: string }) {
   }
 
   const live = status === 'connected' && Boolean(stream)
+  // No picture after the stream arrived: say so, and let the player push the next attempt.
+  const noPicture = live && health !== null && health.frames === 0 && stalled >= 2
+  const nextPin = nextPinAfter(health?.pin)
   // A live feed on a phone-sized screen gets the cabinet and nothing else; the toggle only matters on desktop.
   const handheld = live && compact
   const showTouch = live && (touch || compact)
@@ -156,6 +216,28 @@ export function GuestView({ code }: { code: string }) {
           <button className="sound" onClick={enableSound}>
             Tap for sound
           </button>
+        )}
+
+        {noPicture && (
+          <div className="video-note" role="status">
+            <span>No picture</span>
+            <button className="mini" onClick={retryNow}>
+              Try {PIN_LABEL[nextPin]}
+            </button>
+          </div>
+        )}
+
+        {debug && health && (
+          <div className="video-note debug">
+            {/* The one line that splits "host is not sending" from "phone is not painting". */}
+            <span>
+              {health.codec} · {health.width}×{health.height} · {health.fps} fps · {health.frames} frames ·{' '}
+              {health.element} · {health.pin}
+            </span>
+            <button className="mini" onClick={retryNow}>
+              Switch codec
+            </button>
+          </div>
         )}
       </div>
 

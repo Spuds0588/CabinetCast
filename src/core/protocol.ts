@@ -109,9 +109,48 @@ const ROOM_CODE_ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz'
 export const randomCode = (length = 5) =>
   Array.from({ length }, () => ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)]).join('')
 
-export type HostMessage = { t: 'slot'; port: number; spectator: boolean }
-
 /** What a player is holding. Guests report theirs; the host derives it for local sources. */
 export type InputKind = 'keyboard' | 'gamepad' | 'arcade' | 'touch'
 
-export type GuestMessage = { t: 'source'; kind: InputKind }
+/**
+ * Which video codec a call is pinned to. 'auto' keeps the normal offer (H.264 first, VP8 fallback);
+ * the other two strip the offer down to one codec so a device that cannot decode one can try the other.
+ */
+export type CodecPin = 'auto' | 'vp8' | 'h264'
+
+/** What a guest's video element is actually doing. Sent over the data channel so the host can see it. */
+export interface VideoHealth {
+  /** Negotiated video codec, e.g. `video/H264`; `—` until the first frame is described. */
+  codec: string
+  width: number
+  height: number
+  /** Frames decoded per second in the last second. */
+  fps: number
+  /** Total frames decoded since the call started. Zero means nothing reached the decoder. */
+  frames: number
+  /** Audio bytes received. Rising while `frames` stays zero points at video, not the connection. */
+  audio: number
+  /** The `<video>` element: playing, waiting, paused or error. */
+  element: string
+  pin: CodecPin
+}
+
+/** Host-side encoder health, so a silent guest can be split into "not sent" and "not decoded". */
+export interface SentHealth {
+  codec: string
+  fps: number
+  frames: number
+  limitation: string
+}
+
+export type HostMessage =
+  | { t: 'slot'; port: number; spectator: boolean }
+  | { t: 'codec'; pin: CodecPin }
+
+export type GuestMessage =
+  /** Sent the moment the data channel opens, before any call is offered. */
+  | { t: 'hello'; platform: 'apple' | 'other' }
+  | { t: 'source'; kind: InputKind }
+  | { t: 'health'; health: VideoHealth }
+  /** Ask the host to re-offer the call, pinned to one codec. */
+  | { t: 'retry'; pin: CodecPin }

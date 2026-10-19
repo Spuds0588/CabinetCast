@@ -59,6 +59,17 @@
       Ctrl/Cmd/Alt combos are no longer swallowed by the input readers (2026-10-19)
 - [x] P1 coin and start verified end to end on the new rows: `Space` advanced the attract loop, `Enter`
       started the game (2026-10-19)
+- [x] Codec pins: `videoSdp(sdp, pin)` with `auto | vp8 | h264`, one codec per pinned offer, rtx kept with
+      its codec; all three verified against a real Chrome offer and a live call (2026-10-19)
+- [x] Guest sends `{t:'hello', platform}`; Chromium guests get VP8 on the first offer, Apple gets H.264 first
+      (2026-10-19)
+- [x] Video health over the data channel: codec, resolution, fps, frames decoded, audio bytes, element state;
+      host Player panel shows `↑n ↓n` with details, guest shows `No picture · Try VP8` and auto-switches
+      codec after 5 s of audio with zero frames (2026-10-19)
+- [x] Capture from a fixed 384x288 relay canvas, so the stream is macroblock-aligned and host-layout independent
+      (was 402x302) (2026-10-19)
+- [x] Guest video no longer uses `image-rendering: pixelated`, and the touch controls no longer use
+      `backdrop-filter` (both blank hardware video on some Androids) (2026-10-19)
 
 ## Next
 - [ ] Prove multiplayer across real devices/networks (`npm run dev -- --host` for a LAN test or use the
@@ -71,6 +82,9 @@
 - [ ] Hear the audio: a guest receives a live audio track, but no sample has ever been measured (analyser
       peak 0.0 under a gesture-less scripted drop, which is inconclusive)
 - [ ] 8 player ports: needs an input path other than per-player keyboard binds (see agents.md)
+- [ ] Confirm the phone picture: the codec pins, the VP8-first offer, the aligned 384x288 stream and the
+      compositing fixes are all verified in Chromium, but no phone was available to retest. The `↑n ↓n` pair
+      in the host's Players panel is what decides the next step
 - [ ] Confirm the white-square fix on a real iPhone: codec filtering is verified on the offer and the feed
       renders in Chrome, but no Safari hardware was available to retest the decode path
 - [ ] Try the touch overlay on real iOS/Android hardware (pointer capture, audio unlock, safe-area insets)

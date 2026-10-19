@@ -2,6 +2,40 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — Phone had sound and controls but no picture: a codec ladder and a visible readout
+
+**Report.** Both `xmen6pu` and `tmnt2` on the phone: audio in sync, touch controls working, screen a plain
+white rectangle where the 4:3 stage is. Same build that decodes fine in a desktop guest tab, so the call and
+the sender are healthy; the split is between "the phone gets no frames" and "the phone gets frames it cannot
+paint", and there was no way to see which from the host.
+
+**Three candidates, all defensible:** the H.264 payload the offer led with (Android Chrome decodes H.264
+through MediaCodec and it is the fussy path; VP8 is Chromium's own default), an unaligned stream (the
+captured track was 402x302, because RetroArch sizes its buffer from the transformed canvas rect), and
+compositing (`image-rendering: pixelated` on the video plus `backdrop-filter` on the touch controls are both
+known to blank hardware video on some Androids). All three were addressed rather than betting on one.
+
+**What changed.** `videoSdp(sdp, pin)` now takes `auto | vp8 | h264`; the pinned modes strip the offer to a
+single codec, which is the only way to force a switch — with VP8 still in the list Chrome answers VP8
+whatever order the H.264 payloads are in. Guests send `{t:'hello', platform}` on connect, so a Chromium
+guest's *first* offer is already VP8 and Apple still gets H.264 first. `captureStream` now reads a fixed
+384x288 relay canvas drawn from the core canvas each rAF, so the stream is aligned and identical on every
+host. The pixelated video rule and both backdrop filters are gone.
+
+**Diagnosis instead of guesswork.** `GuestNet` samples `getStats()` every second and sends codec,
+resolution, fps, `framesDecoded`, audio bytes and the video element's state to the host. The Players panel
+shows `↑n ↓n` per guest with those details in the tooltip: `↑0` sender, `↑n ↓0` decoder, `↑n ↓n` with a
+blank screen compositing. If frames stay at zero for two samples the guest shows `No picture · Try VP8`,
+and after 5 s with audio but no frames it asks the host for the next codec on its own (`vp8` → `h264` →
+`auto`). Every `{t:'retry'}` makes the host close and re-offer the call pinned to that codec.
+
+**Verified on the dev build, then on the built LAN bundle:** `videoSdp` pinned offers for `auto`, `vp8` and
+`h264` are all accepted by Chromium, negotiate the expected codec and decode frames live; the hello path
+produced `video/VP8 · 384×288` on a desktop guest; a switch to H.264 and back re-offered and kept decoding
+with the playhead advancing; the host panel read `↑20 ↓19` with `Host encoding video/H264 · none` and
+`Guest decoding video/H264 · 384×288 · playing`. **Not verified:** the phone itself. The next report of
+`↑n ↓n` from its row decides the next move.
+
 ## 2026-10-19 — WASD/JKL for P1, and a keyboard map you can open
 
 **The rows were hostile to muscle memory.** P1 was arrows + Z/X/C/V + A/S, which is the RetroArch default but

@@ -52,14 +52,29 @@ export async function launchArcade(file: File, bios?: Blob): Promise<ArcadeSessi
   element.blur()
   if (isDebug()) Object.assign(globalThis, { __cabinetCore: emulator })
 
-  const videoTrack = element.captureStream(STREAM_FPS).getVideoTracks()[0]
+  // RetroArch sizes its buffer from the canvas' on-screen rect, which the cabinet scales, so the raw
+  // canvas is not a predictable size (it was 402x302 on a 1280px window). Copy it into a fixed 384x288
+  // relay and capture that: the stream is then always macroblock-aligned and identical on every host,
+  // which matters because some hardware decoders will not paint an unaligned H.264 frame at all.
+  const relay = document.createElement('canvas')
+  relay.width = 384
+  relay.height = 288
+  const paint = relay.getContext('2d')
+  let relayFrame = 0
+  const copy = () => {
+    paint?.drawImage(element, 0, 0, relay.width, relay.height)
+    relayFrame = requestAnimationFrame(copy)
+  }
+  relayFrame = requestAnimationFrame(copy)
+
+  const videoTrack = relay.captureStream(STREAM_FPS).getVideoTracks()[0]
   // Tell the encoder this is motion, not a document: keep the frames when it must trade something.
   videoTrack.contentHint = 'motion'
   const getStream = () => new MediaStream([videoTrack, ...audioTracks()])
   const lastMasks = new Array<number>(PORTS).fill(0)
 
   const settings = videoTrack.getSettings()
-  log(`Running: ${file.name} (canvas ${settings.width}x${settings.height}, capture ${settings.frameRate ?? STREAM_FPS} fps)`)
+  log(`Running: ${file.name} (canvas ${element.width}x${element.height} → relay ${settings.width}x${settings.height}, capture ${settings.frameRate ?? STREAM_FPS} fps)`)
 
   return {
     romName: file.name,
@@ -83,6 +98,7 @@ export async function launchArcade(file: File, bios?: Blob): Promise<ArcadeSessi
     },
     exit() {
       log('Exiting emulator')
+      cancelAnimationFrame(relayFrame)
       emulator.exit()
     },
   }

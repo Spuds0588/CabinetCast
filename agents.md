@@ -70,14 +70,39 @@ hosted on GitHub Pages. Tauri packaging is deferred.
 - **Stream fps is one constant.** `STREAM_FPS` in protocol feeds both `captureStream()` and the sender's
   `maxFramerate`. Input is still injected every host rAF, so lowering it does not add input latency; it
   trades video smoothness for encode/decode and bitrate. Do not claim it makes input faster.
-- **Safari decodes less than Chromium offers.** A raw `peer.call(id, stream)` advertises VP8, VP9, AV1 and
-  H.264; iOS Safari painted a white rectangle while audio and input kept working. Every host call goes
-  through `safariSafeSdp` in `src/net/sdp.ts` as the `sdpTransform`: VP9/AV1 (and their rtx) are removed and
-  the H.264 payloads are moved to the front of the video m-line, because the offer's payload order is what
-  the encoder follows when the answer accepts several codecs. VP8 stays as the fallback. Keep codec policy
-  there; never hand a raw stream to `peer.call`. One call must carry audio and video together — a video-only
-  call followed by a video+audio call renegotiates the same m-line and some Safari versions never paint the
-  video after that.
+- **Codec policy lives in `videoSdp(sdp, pin)`** (`src/net/sdp.ts`), never in a raw `peer.call(id, stream)`.
+  VP9/AV1/HEVC and their rtx are always dropped: iOS Safari advertises them and then paints a white
+  rectangle while audio and input keep working. `auto` keeps H.264 and VP8, with H.264 first, because the
+  offer's payload order is what the encoder follows when the answer accepts several codecs. `vp8` and
+  `h264` keep exactly one codec each — with both in the list, Chrome answers with VP8 no matter what order
+  the H.264 payloads are in, so a codec switch is impossible without stripping the offer. RTX survives as
+  long as the codec it retransmits does. One call must carry audio and video together: a video-only call
+  followed by a video+audio call renegotiates the same m-line and some Safari versions never paint after it.
+- **The first offer follows the guest, not the host.** On `conn.open` the guest sends `{t:'hello', platform}`
+  and `HostNet` waits 150 ms for it, then offers `auto` (H.264 first) to Apple and `vp8` to everything else.
+  This is the fix for an Android phone that heard audio and drove its port but painted a white rectangle:
+  Chromium decodes VP8 on every device, H.264 hardware decoders are the fussy path. Retries override the
+  hello choice; a retry the guest asked for is authoritative on the guest side too (`requested` in
+  `GuestNet`), so a dropped or late `{t:'codec'}` confirmation cannot loop it back onto the failed codec.
+- **A guest with sound and no picture asks for the other codec.** `GuestNet` samples `getStats()` every
+  second and sends `{t:'health'}` with the negotiated codec, resolution, fps, `framesDecoded`, audio bytes
+  received and the `<video>` element's state. `GuestView` shows a `No picture / Try VP8` chip after two
+  frame-less samples, and after 5 s with audio but zero frames it automatically asks for the next codec in
+  the ladder (`vp8` → `h264` → `auto`, or `h264` → `vp8` → `auto` on Apple). The host re-offers the call
+  pinned to that codec. The host's Players panel shows the pair `↑n ↓n` — encoded fps and the guest's own
+  decoded fps. `↑0` is a sender problem, `↑n ↓0` is the guest's decoder, `↑n ↓n` with a blank screen is
+  compositing/rendering on the guest. Ask for that pair before theorising about codecs.
+- **The stream is captured from a relay canvas, not the core's canvas.** RetroArch sizes its drawing buffer
+  from the canvas' on-screen rect, and the cabinet scales that canvas with a transform, so the captured
+  track came out 402x302 on a 1280px window — a size that changes with the host's layout and is not
+  macroblock-aligned. `launchArcade` draws the core canvas into a fixed 384x288 relay every rAF and captures
+  the relay (30 fps), so every host sends the same aligned size. The relay draw is registered after
+  RetroArch's own rAF, which is what makes the WebGL readback current; do not move it into a timer.
+- **No compositing effects on the guest video.** `image-rendering: pixelated` on `.stage video` and
+  `backdrop-filter` on the touch controls are both gone: Android Chrome can fail to composite a WebRTC
+  frame under either and leaves a white rectangle where the picture should be. The controls are opaque
+  enough to read without the blur. Keep the video element free of filters and transforms, and keep the
+  debug chip (`?debug`) as the on-device readout, because a phone has no console you can read.
 - **An `m=` line has exactly two fixed tokens.** `m=video <port> <proto> <payloads…>`; `UDP/TLS/RTP/SAVPF`
   is one token, so `^m=video (\S+ \S+)` captures the header and the rest is payloads. Matching a third
   `\S+` swallows the first payload, which silently defeats any payload reordering while the rebuilt line

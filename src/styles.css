@@ -487,12 +487,49 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.9);
 }
 
-.stage video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; image-rendering: pixelated; }
+/* No image-rendering/pixelated here: on Android Chrome it can knock a decoded WebRTC frame off the
+   compositor path, and the picture comes out as a plain white rectangle. */
+.stage video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
 
 /* The host's 4:3 stream, stretched to 16:9 on this screen only. */
 .stage.wide { aspect-ratio: 16 / 9; }
 .stage.wide video { object-fit: fill; }
 .stage:fullscreen { border: 0; border-radius: 0; max-height: none; }
+
+/* Shown only while the stream is connected and the guest's decoder has not produced a frame. */
+.video-note {
+  position: absolute;
+  z-index: 40;
+  top: 10px;
+  left: 10px;
+  max-width: calc(100% - 20px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 11px;
+  border: 1px solid rgba(255, 176, 46, 0.5);
+  border-radius: 9px;
+  background: rgba(10, 10, 16, 0.92);
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+.video-note.debug {
+  top: auto;
+  bottom: 10px;
+  border-color: var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.video-note button { border-color: rgba(255, 176, 46, 0.5); color: var(--amber); }
+
+.video-tags { display: inline-flex; gap: 4px; }
+.mini-tag { padding: 1px 5px; font-size: 9px; letter-spacing: 0.02em; }
+.tag.bad { color: var(--red); border-color: rgba(255, 92, 92, 0.45); }
 
 .sound {
   position: absolute;
@@ -524,8 +561,8 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   height: 168px;
   border-radius: 50%;
   border: 1px solid rgba(150, 148, 175, 0.4);
-  background: radial-gradient(circle at 50% 45%, rgba(32, 32, 48, 0.72), rgba(12, 12, 20, 0.42) 70%);
-  backdrop-filter: blur(2px);
+  /* Opaque enough to read without backdrop-filter, which blanks hardware video on some Androids. */
+  background: radial-gradient(circle at 50% 45%, rgba(32, 32, 48, 0.86), rgba(12, 12, 20, 0.68) 70%);
 }
 
 .dpad-arrow { position: absolute; font-size: 16px; color: #6b6b86; transition: color 0.08s; }
@@ -573,8 +610,7 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(150, 148, 175, 0.45);
-  background: rgba(25, 25, 36, 0.55);
-  backdrop-filter: blur(2px);
+  background: rgba(25, 25, 36, 0.82);
   box-shadow: 0 8px 20px -12px #000;
   font-family: var(--mono);
   font-size: 19px;

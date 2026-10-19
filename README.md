@@ -51,6 +51,9 @@ npm run build    # typecheck + production build
   tagged with the keyboard, gamepad, arcade stick or phone the player is actually using.
 - Save states live in the host's IndexedDB only, keyed by ROM name and size, and are never sent to guests.
 - Neo Geo sets need a `neogeo.zip` matching the core; drop it once and it is stored in IndexedDB.
+- Video codecs adapt to the guest: H.264 first for Safari, VP8 first for Chrome and Android. If a guest has
+  sound but no picture it asks the host to re-offer with the other codec, and the host's Players panel shows
+  `↑n ↓n` (encoded and decoded frames per second) to tell a sender problem from a guest decoder problem.
 - Only STUN is configured. Symmetric NAT pairs need a TURN server to connect.
 - Bring your own legally owned ROMs. Nothing is bundled except the option to drop `neogeo.zip`.
 

@@ -74,6 +74,36 @@ export function SlotPanel({ slots, peers, onAssign, onClear, tick }: Props) {
     kind: 'peer',
     icon: peerSource(peer.id),
   }))
+
+  /** Two counters in one glance: what this host encodes, and what the guest's own decoder reports. */
+  const videoTags = (id: string) => {
+    const peer = peers.find((candidate) => candidate.id === id)
+    if (!peer) return null
+    const sent = peer.sent
+    const video = peer.video
+    const up = sent?.fps ?? 0
+    const down = video?.fps ?? 0
+    return (
+      <span className="video-tags">
+        <span
+          className={up ? 'tag mini-tag' : 'tag mini-tag bad'}
+          title={sent ? `Host encoding ${sent.codec} · ${sent.frames} frames · ${sent.limitation}` : 'Not encoding yet'}
+        >
+          ↑{up}
+        </span>
+        <span
+          className={video && video.frames > 0 ? 'tag mini-tag' : 'tag mini-tag bad'}
+          title={
+            video
+              ? `Guest decoding ${video.codec} · ${video.width}×${video.height} · ${video.frames} frames · ${video.element} · ${video.pin}`
+              : 'Guest has not reported its video yet'
+          }
+        >
+          ↓{down}
+        </span>
+      </span>
+    )
+  }
   const rows = [...keyboardRows, ...inputRows, ...peerRows].sort((a, b) => rank(a.port) - rank(b.port))
 
   const assignRow = (row: Row) => {
@@ -114,6 +144,7 @@ export function SlotPanel({ slots, peers, onAssign, onClear, tick }: Props) {
           <li key={row.key}>
             <InputIcon kind={row.icon} />
             <span className="grow">{row.name}</span>
+            {row.kind === 'peer' && videoTags(row.key)}
             {row.port !== -1 && <span className="tag">P{row.port + 1}</span>}
             {row.kind === 'peer' ? (
               row.port === -1 && <span className="tag">spectator</span>
