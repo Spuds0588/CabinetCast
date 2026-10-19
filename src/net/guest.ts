@@ -34,7 +34,12 @@ export class GuestNet {
   private pending: Uint8Array | null = null
   private decoding = false
 
-  constructor(private readonly code: string, private readonly events: GuestEvents) {
+  constructor(
+    private readonly code: string,
+    private readonly events: GuestEvents,
+    /** False for a controller-only guest: it never asks for, or decodes, a picture. */
+    private readonly wantsVideo = true,
+  ) {
     this.peer = new Peer({ config: ICE })
 
     this.peer.on('open', () => {
@@ -46,6 +51,7 @@ export class GuestNet {
         log(`Connected to room "${code}"`)
         this.events.onStatus('connected')
         this.send({ t: 'hello', platform: /iPad|iPhone|iPod/.test(navigator.userAgent) ? 'apple' : 'other' })
+        this.send({ t: 'mode', video: this.wantsVideo })
         this.flushSource()
       })
       conn.on('close', () => !this.destroyed && this.events.onStatus('error', 'host closed the connection'))
@@ -84,7 +90,7 @@ export class GuestNet {
 
   /** Keep at most one frame in flight: a stale picture is worth less than the next one. */
   private queueFrame(bytes: Uint8Array) {
-    if (bytes[0] !== FRAME_TAG) return
+    if (!this.wantsVideo || bytes[0] !== FRAME_TAG) return
     if (this.decoding) {
       this.pending = bytes
       return

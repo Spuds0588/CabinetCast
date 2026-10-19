@@ -151,3 +151,5 @@ export type GuestMessage =
   /** Sent the moment the data channel opens, before any call is offered. */
   | { t: 'hello'; platform: 'apple' | 'other' }
   | { t: 'source'; kind: InputKind }
+  /** A controller-only guest takes no frames, so the host can skip encoding for it entirely. */
+  | { t: 'mode'; video: boolean }

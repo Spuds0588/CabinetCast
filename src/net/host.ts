@@ -48,6 +48,8 @@ export class HostNet {
   private readonly ports = new Map<string, number>()
   private readonly sources = new Map<string, InputKind>()
   private readonly rates = new Map<string, number>()
+  /** Guests that want the picture. A controller-only guest is false and costs no encode at all. */
+  private readonly video = new Map<string, boolean>()
   private readonly pumps = new Map<string, number>()
   private readonly greeted = new Set<string>()
   private audio: MediaStream | null = null
@@ -125,6 +127,11 @@ export class HostNet {
       } else if (message.t === 'source') {
         this.sources.set(id, message.kind)
         this.roster()
+      } else if (message.t === 'mode') {
+        this.video.set(id, message.video)
+        if (message.video) this.startFrames(id)
+        else this.stopFrames(id)
+        this.roster()
       }
     } catch {
       /* ignore malformed control messages */
@@ -149,6 +156,7 @@ export class HostNet {
     this.ports.delete(id)
     this.sources.delete(id)
     this.rates.delete(id)
+    this.video.delete(id)
     this.greeted.delete(id)
     this.events.onLeave(id)
     this.roster()
@@ -162,7 +170,7 @@ export class HostNet {
   private startFrames(id: string) {
     this.stopFrames(id)
     const canvas = this.canvas
-    if (!canvas) return
+    if (!canvas || this.video.get(id) === false) return
     let busy = false
     let sent = 0
     let sampled = performance.now()

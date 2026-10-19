@@ -34,6 +34,8 @@ export function HostView() {
   const [saveStatus, setSaveStatus] = useState('')
   const [preset, setPreset] = useState<FramePreset>(() => loadPreset())
   const [buttonCount, setButtonCount] = useState(4)
+  // Which link the Invite panel hands out: a guest who watches, or a phone used as a controller.
+  const [inviteMode, setInviteMode] = useState<'play' | 'pad'>('play')
   const [wide, toggleWide] = useWidescreen()
   const fullscreen = useFullscreen(() => cabinet.current)
   useViewShortcuts({ fullscreen: fullscreen.toggle, widescreen: toggleWide })
@@ -324,7 +326,7 @@ export function HostView() {
     startGame(file)
   }
 
-  const invite = `${location.origin}${location.pathname}?room=${code}`
+  const invite = `${location.origin}${location.pathname}?room=${code}${inviteMode === 'pad' ? '&mode=pad' : ''}`
 
   const copyInvite = async () => {
     try {
@@ -511,12 +513,29 @@ export function HostView() {
 
           <div className="panel">
             <h2>Invite</h2>
+            <div className="row">
+              <button
+                className={inviteMode === 'play' ? 'primary' : 'ghost'}
+                aria-pressed={inviteMode === 'play'}
+                onClick={() => setInviteMode('play')}
+              >
+                Watch + play
+              </button>
+              <button
+                className={inviteMode === 'pad' ? 'primary' : 'ghost'}
+                aria-pressed={inviteMode === 'pad'}
+                onClick={() => setInviteMode('pad')}
+              >
+                Controller only
+              </button>
+            </div>
             <div className="invite">
               <code>{invite || 'starting signaling…'}</code>
             </div>
             <p className="muted small">
-              Guests open this link on any device, no install. Host keeps the ROM and the emulator; only the AV stream
-              is sent.
+              {inviteMode === 'pad'
+                ? 'No picture and no sound: a phone in the same room as you, driving one player while the cabinet screen stays the thing everyone watches. The host does not even encode frames for it.'
+                : 'Guests open this link on any device, no install. Host keeps the ROM and the emulator; only the AV stream is sent.'}
             </p>
           </div>
 

@@ -659,6 +659,52 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .touch-btn:active { background: var(--amber); border-color: var(--amber); color: #1a1204; }
 .touch-btn.wide { width: auto; height: 44px; padding: 0 18px; border-radius: 10px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
 
+/* Controller-only guest: no picture, just the pad in their hands next to the host's screen. */
+.app.guest.pad {
+  max-width: none;
+  margin: 0;
+  height: 100dvh;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.app.guest.pad .topbar {
+  margin: 0;
+  border-radius: 0;
+  padding: max(12px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 12px
+    max(18px, env(safe-area-inset-left));
+}
+
+.app.guest.pad .touch {
+  /* A grid, not the overlay's flex row: the pad must lay out inside the safe area on any width. */
+  flex: 1;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: end;
+  gap: 16px;
+  padding: 0 max(20px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+}
+
+.app.guest.pad .touch-right { justify-self: end; }
+
+.app.guest.pad .touch .dpad { width: 176px; height: 176px; }
+.app.guest.pad .touch .face { --face-size: 72px; }
+.app.guest.pad .touch .touch-btn { width: 72px; height: 72px; }
+/* Coin and start stack: side by side they are wider than the face pad and push it off screen. */
+.app.guest.pad .touch-right { flex: none; }
+.app.guest.pad .touch-meta { flex-direction: column; align-items: stretch; gap: 8px; }
+.app.guest.pad .touch-meta .touch-btn.wide { padding: 0 14px; }
+
+.app.guest.pad .pad-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px max(14px, env(safe-area-inset-bottom));
+}
+
 /* Handheld play: the guest gets the cabinet and nothing else, controls floating over the picture. */
 .app.guest.handheld { max-width: none; margin: 0; padding: 0; gap: 0; height: 100dvh; overflow: hidden; }
 

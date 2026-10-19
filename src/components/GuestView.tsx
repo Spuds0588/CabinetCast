@@ -15,7 +15,7 @@ const STATUS_TEXT: Record<GuestStatus, string> = {
   error: 'Connection lost',
 }
 
-export function GuestView({ code }: { code: string }) {
+export function GuestView({ code, pad = false }: { code: string; pad?: boolean }) {
   const [status, setStatus] = useState<GuestStatus>('connecting')
   const [detail, setDetail] = useState('')
   const [port, setPort] = useState(-1)
@@ -66,23 +66,28 @@ export function GuestView({ code }: { code: string }) {
   }
 
   useEffect(() => {
-    const guest = new GuestNet(code.toLowerCase(), {
-      onStatus: (next, message) => {
-        setStatus(next)
-        setDetail(message ?? '')
+    // A controller-only guest never asks for a picture, and the host stops encoding for it.
+    const guest = new GuestNet(
+      code.toLowerCase(),
+      {
+        onStatus: (next, message) => {
+          setStatus(next)
+          setDetail(message ?? '')
+        },
+        onAudio: setAudio,
+        onSlot: setPort,
+        onButtons: setButtons,
+        onFrame: (bitmap, latency) => sink.current(bitmap, latency),
       },
-      onAudio: setAudio,
-      onSlot: setPort,
-      onButtons: setButtons,
-      onFrame: (bitmap, latency) => sink.current(bitmap, latency),
-    })
+      !pad,
+    )
     net.current = guest
     if (debug) Object.assign(globalThis, { __guestNet: guest })
     return () => {
       guest.destroy()
       net.current = null
     }
-  }, [code, debug])
+  }, [code, debug, pad])
 
   // The call carries sound only; play it muted until the player asks for audio, which is the tap
   // mobile browsers require anyway.
@@ -168,6 +173,38 @@ export function GuestView({ code }: { code: string }) {
       if (on) touchMask.current = 0
       return !on
     })
+
+  // In-person mode: the phone is a controller next to the host's screen, so there is no picture at all.
+  if (pad) {
+    return (
+      <div className="app guest pad">
+        <header className="topbar">
+          <div className="brand">
+            <span className="lamp" />
+            CABINET<span>CAST</span>
+          </div>
+          <div className="room">
+            <span className="label">room</span>
+            <b>{code || '····'}</b>
+          </div>
+          <div className="statusline">
+            {status === 'connected' && <span className="live">LIVE</span>}
+            <span>{port === -1 ? 'Spectator' : `Player ${port + 1}`}</span>
+          </div>
+        </header>
+
+        <TouchControls buttons={buttons} onChange={(mask) => (touchMask.current = mask)} />
+
+        <footer className="pad-foot">
+          <span className="muted small">{STATUS_TEXT[status]}</span>
+          <span className="tag">
+            <InputIcon kind={ownKind} size={14} />
+            {port === -1 ? 'Spectator' : `Controller for player ${port + 1}`}
+          </span>
+        </footer>
+      </div>
+    )
+  }
 
   return (
     <div className={handheld ? 'app guest handheld' : 'app guest'}>

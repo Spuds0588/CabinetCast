@@ -98,8 +98,16 @@ export function TouchControls({ onChange, buttons = 6 }: { onChange: (mask: numb
           {button(INPUT_BITS.COIN, 'Coin', 'wide')}
           {button(INPUT_BITS.START, 'Start', 'wide')}
         </div>
-        {/* Four buttons keep the arcade diamond; any other count uses a plain grid. */}
-        <div className={buttons === 4 ? 'face' : 'face grid'}>
+        {/* Four buttons keep the arcade diamond; any other count uses a plain grid whose column count
+            follows the count, so a two-button pad does not reserve room for six. */}
+        <div
+          className={buttons === 4 ? 'face' : 'face grid'}
+          style={
+            buttons === 4
+              ? undefined
+              : { gridTemplateColumns: `repeat(${Math.min(Math.max(buttons, 2), 3)}, var(--face-size))` }
+          }
+        >
           {FACE.slice(0, Math.max(2, Math.min(buttons, FACE.length))).map((face) =>
             button(face.bit, face.label, '', face.area),
           )}
