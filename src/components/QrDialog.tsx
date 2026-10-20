@@ -4,10 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 interface Props {
   invite: string
   code: string
+  /** What the scan does; the invite QR joins, the roster QR is controller only. */
+  title?: string
+  note?: string
   onClose: () => void
 }
 
-export function QrDialog({ invite, code, onClose }: Props) {
+export function QrDialog({ invite, code, title = 'Scan to join', note, onClose }: Props) {
   const [png, setPng] = useState('')
   const [status, setStatus] = useState('')
   const statusTimer = useRef<number | undefined>(undefined)
@@ -70,10 +73,10 @@ export function QrDialog({ invite, code, onClose }: Props) {
   }
 
   return (
-    <div className="modal" role="dialog" aria-modal="true" aria-label="Scan to join" onClick={onClose}>
+    <div className="modal" role="dialog" aria-modal="true" aria-label={title} onClick={onClose}>
       <div className="qr-card" onClick={(event) => event.stopPropagation()}>
         <div className="panel-head">
-          <h2>Scan to join</h2>
+          <h2>{title}</h2>
           <button className="icon" onClick={onClose} aria-label="Close QR code">
             ×
           </button>
@@ -84,6 +87,7 @@ export function QrDialog({ invite, code, onClose }: Props) {
           <p className="muted">Generating QR code…</p>
         )}
         <code className="qr-url">{invite}</code>
+        {note && <p className="muted small qr-note">{note}</p>}
         <div className="row">
           <button className="primary" onClick={copy} disabled={!png}>
             Copy image

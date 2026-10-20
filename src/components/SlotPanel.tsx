@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import { padKind, padLabel, pads } from '../core/input'
 import type { Slots, Source } from '../core/slots'
 import type { HostPeer } from '../net/host'
@@ -7,38 +6,20 @@ import { InputIcon, type IconKind } from './InputIcon'
 interface Props {
   slots: Slots
   peers: HostPeer[]
-  onAssign: (source: Source) => void
   onClear: (port: number) => void
+  /** Opens the controller-only QR: a phone joins as a pad, nothing else. */
+  onPhone: () => void
   tick: number
 }
 
 /**
- * The roster is one row of small tags: port, icon, name, live dot. Four full-height rows were a lot
- * of screen for information that is usually just "the keyboard and two controllers". Adding a player
- * is the rare path, so it sits behind + Player: it offers the free inputs (keyboard, unassigned pads)
- * and the port is chosen automatically. Gamepads and joining guests never need it.
+ * The roster is one centered row of small tags under the cabinet: port, icon, name, live dot.
+ * Gamepads connect themselves and guests take a port on join, so the only manual add is a phone:
+ * the tag at the end of the row shows the QR a phone scans to become a controller.
  */
-export function SlotPanel({ slots, peers, onAssign, onClear, tick }: Props) {
-  const [menu, setMenu] = useState(false)
-  const add = useRef<HTMLDivElement>(null)
+export function SlotPanel({ slots, peers, onClear, onPhone, tick }: Props) {
   const detectedPads = pads()
   const free = slots.sources.some((source) => source.kind === 'none')
-  // The keyboard has no keys outside player 1, so it can only be added while P1 is free.
-  const keyboardFree = slots.sources[0].kind === 'none'
-
-  useEffect(() => {
-    if (!menu) return
-    const onPointer = (event: PointerEvent) => {
-      if (!add.current?.contains(event.target as Node)) setMenu(false)
-    }
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setMenu(false)
-    addEventListener('pointerdown', onPointer)
-    addEventListener('keydown', onKey)
-    return () => {
-      removeEventListener('pointerdown', onPointer)
-      removeEventListener('keydown', onKey)
-    }
-  }, [menu])
 
   const label = (source: Source) => {
     if (source.kind === 'keyboard') return 'Keyboard'
@@ -78,53 +59,10 @@ export function SlotPanel({ slots, peers, onAssign, onClear, tick }: Props) {
       : [],
   )
 
-  const waiting = detectedPads.filter(
-    (pad) => !slots.sources.some((source) => source.kind === 'pad' && source.index === pad.index),
-  )
-
-  const assign = (source: Source) => {
-    onAssign(source)
-    setMenu(false)
-  }
-
   return (
-    <div className="panel" data-tick={tick}>
-      <div className="panel-head">
-        <h2>Players</h2>
-        <div className="add-input" ref={add}>
-          <button
-            className="player-add"
-            onClick={() => setMenu((open) => !open)}
-            disabled={!free}
-            title={
-              free
-                ? 'Tie a detected controller to a free port'
-                : waiting.length
-                  ? `All four ports are playing. ${waiting.length} controller${waiting.length === 1 ? '' : 's'} waiting.`
-                  : 'All four ports are playing'
-            }
-          >
-            + Player
-          </button>
-          {menu && free && (
-            <div className="input-menu">
-              {keyboardFree && <button onClick={() => assign({ kind: 'keyboard' })}>Keyboard</button>}
-              {waiting.map((pad) => (
-                <button key={pad.index} onClick={() => assign({ kind: 'pad', index: pad.index })}>
-                  {padLabel(pad)}
-                </button>
-              ))}
-              {!keyboardFree && !waiting.length && (
-                <p className="muted small">
-                  Connect a gamepad, or share the invite link. Guests take a port automatically.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="player-tags">
+    <div className="roster" data-tick={tick}>
+      {/* A group, not a list: the pill row also holds the phone button, which is not an item. */}
+      <div className="player-tags" role="group" aria-label="Players">
         {players.map((player) => (
           <span
             key={player.port}
@@ -151,16 +89,28 @@ export function SlotPanel({ slots, peers, onAssign, onClear, tick }: Props) {
           </span>
         ))}
         {watchers.map((watcher) => (
-          <span key={watcher.id} className="player-tag watcher" title="Spectating: all four ports are playing">
+          <span
+            key={watcher.id}
+            className="player-tag watcher"
+            title="Spectating: all four ports are playing"
+          >
             <InputIcon kind={watcher.icon} size={14} />
             <span className="tag-name">{watcher.name}</span>
             <span className="tag-rate">↓{watcher.rate}</span>
             <span className="tag-note">watching</span>
           </span>
         ))}
+        <button
+          className="player-add"
+          aria-haspopup="dialog"
+          onClick={onPhone}
+          disabled={!free}
+          title={free ? 'Show a QR code a phone can scan to play as a controller' : 'All four ports are playing'}
+        >
+          <InputIcon kind="touch" size={13} />
+          + Phone controller
+        </button>
       </div>
-
-      {!players.length && !watchers.length && <p className="muted small">Press a key or connect a gamepad.</p>}
     </div>
   )
 }

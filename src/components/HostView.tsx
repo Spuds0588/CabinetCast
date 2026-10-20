@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getBios, saveBios } from '../core/bios'
 import { launchArcade, type ArcadeSession } from '../core/emulator'
 import { createKeyboard, padLabel, padMask, pads } from '../core/input'
-import { BUTTON_COUNTS, FRAME_PRESETS, type FramePreset } from '../core/protocol'
+import { BUTTON_COUNTS, FRAME_PRESETS, KEY_BITS, type FramePreset } from '../core/protocol'
 import { ago, deleteSave, getSave, putSave, romKey, saveTimes, type SaveSlot } from '../core/saves'
-import { Slots, type Source } from '../core/slots'
+import { Slots } from '../core/slots'
 import { useFullscreen, useViewShortcuts, useWidescreen } from '../core/view'
 import { HostNet, type HostPeer } from '../net/host'
 import { CastGuide } from './CastGuide'
@@ -30,11 +30,15 @@ export function HostView() {
   const [tick, setTick] = useState(0)
   const [fps, setFps] = useState(0)
   const [qrOpen, setQrOpen] = useState(false)
+  // The roster's phone button shows this one: a link a phone scans to become a pad, no picture.
+  const [phoneQr, setPhoneQr] = useState(false)
   const [keysOpen, setKeysOpen] = useState(false)
   const [saves, setSaves] = useState<Partial<Record<SaveSlot, number>>>({})
   const [saveStatus, setSaveStatus] = useState('')
   const [castOpen, setCastOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  // The menu is the only host chrome, so settings live in it as accordion sections.
+  const [section, setSection] = useState<'invite' | 'quality' | 'buttons' | 'saves' | null>(null)
   const [preset, setPreset] = useState<FramePreset>(() => loadPreset())
   const [buttonCount, setButtonCount] = useState(4)
   // Which link the Invite panel hands out: a guest who watches, or a phone used as a controller.
@@ -78,11 +82,20 @@ export function HostView() {
 
   const refresh = () => setTick((value) => value + 1)
 
-  /** Every menu entry dismisses the menu, so the screen is clear again the moment a choice is made. */
+  // A closed menu forgets which section was open, so it always reopens compact.
+  useEffect(() => {
+    if (!menuOpen) setSection(null)
+  }, [menuOpen])
+
+  /** One-shot menu entries dismiss the menu, so the screen is clear again the moment a choice is made. */
   const choose = (action: () => void) => () => {
     setMenuOpen(false)
     action()
   }
+
+  /** Settings rows stay in the menu and expand in place. */
+  const expand = (name: Exclude<typeof section, null>) => () =>
+    setSection((open) => (open === name ? null : name))
 
   /** Stream quality is the host's call: bigger frames look softer-or-sharper on a TV, lower ones
    *  keep the frame rate when the guest is on a phone over a weak link. */
@@ -138,6 +151,14 @@ export function HostView() {
     // One reader, one port: the host keyboard is player 1. Players 2-4 bring a gamepad or a phone.
     const keys = createKeyboard()
     keyboard.current = keys
+    // Player 1 belongs to the keyboard by default. If its tag was cleared, the next key press claims it back.
+    const reclaim = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || !KEY_BITS[event.code]) return
+      if (slots.sources[0].kind !== 'none') return
+      slots.setSource(0, { kind: 'keyboard' })
+      setTick((value) => value + 1)
+    }
+    addEventListener('keydown', reclaim)
 
     let disposed = false
     HostNet.start({
@@ -175,6 +196,7 @@ export function HostView() {
 
     return () => {
       disposed = true
+      removeEventListener('keydown', reclaim)
       keys.dispose()
       keyboard.current = null
       host.current?.destroy()
@@ -352,6 +374,8 @@ export function HostView() {
   }
 
   const invite = `${location.origin}${location.pathname}?room=${code}${inviteMode === 'pad' ? '&mode=pad' : ''}`
+  // Always controller-only, whatever the Invite section is set to: that is the whole point of the button.
+  const controllerInvite = `${location.origin}${location.pathname}?room=${code}&mode=pad`
 
   const copyInvite = async () => {
     try {
@@ -414,14 +438,6 @@ export function HostView() {
     for (const peer of peers) host.current?.setSlot(peer.id, slots.portOf(peer.id))
   }
 
-  const assignInput = (source: Source) => {
-    const port = slots.assign(source)
-    if (port === -1) return
-    if (source.kind === 'pad') knownPads.current.add(source.index)
-    syncPeers()
-    refresh()
-  }
-
   const clearInput = (port: number) => {
     slots.setSource(port, { kind: 'none' })
     syncPeers()
@@ -449,6 +465,25 @@ export function HostView() {
           </button>
           {menuOpen && (
             <div className="options" role="menu" aria-label="Cabinet options">
+              <p className="menu-state">
+                <span>
+                  {status === 'starting'
+                    ? 'Starting…'
+                    : status === 'loading'
+                      ? 'Booting core…'
+                      : status === 'error'
+                        ? 'Core error'
+                        : status === 'running'
+                          ? `${fps} fps`
+                          : 'No ROM'}
+                </span>
+                {status === 'running' && <b>{rom}</b>}
+              </p>
+              {status === 'running' && fps > 0 && fps < 30 && (
+                <p className="menu-note">
+                  Host is drawing {fps} fps. Keep this tab in front; browsers throttle a background tab.
+                </p>
+              )}
               <button role="menuitem" onClick={choose(copyInvite)} disabled={!code}>
                 <span>{copied ? 'Copied ✓' : 'Copy link'}</span>
               </button>
@@ -471,6 +506,143 @@ export function HostView() {
               <button role="menuitem" onClick={choose(() => setCastOpen(true))}>
                 <span>Cast to a TV</span>
               </button>
+              <span className="sep" role="separator" />
+
+              <button role="menuitem" aria-expanded={section === 'invite'} onClick={expand('invite')}>
+                <span>Invite</span>
+                <span className="value">{inviteMode === 'pad' ? 'Controller only' : 'Watch + play'}</span>
+              </button>
+              {section === 'invite' && (
+                <div className="sub">
+                  <div className="seg">
+                    <button
+                      className="chip"
+                      aria-pressed={inviteMode === 'play'}
+                      onClick={() => setInviteMode('play')}
+                    >
+                      Watch + play
+                    </button>
+                    <button
+                      className="chip"
+                      aria-pressed={inviteMode === 'pad'}
+                      onClick={() => setInviteMode('pad')}
+                    >
+                      Controller only
+                    </button>
+                  </div>
+                  <code className="sub-url">{invite || 'starting signaling…'}</code>
+                  <p className="menu-note">
+                    {inviteMode === 'pad'
+                      ? 'No picture and no sound: a phone driving one player next to the cabinet. The host does not encode frames for it.'
+                      : 'Guests open this link on any device, no install. Only the AV stream is sent.'}
+                  </p>
+                </div>
+              )}
+
+              <button role="menuitem" aria-expanded={section === 'quality'} onClick={expand('quality')}>
+                <span>Stream quality</span>
+                <span className="value">{preset.label}</span>
+              </button>
+              {section === 'quality' && (
+                <div className="sub">
+                  <div className="seg">
+                    {FRAME_PRESETS.map((option) => (
+                      <button
+                        key={option.id}
+                        className="chip"
+                        aria-pressed={option.id === preset.id}
+                        onClick={() => applyPreset(option)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="menu-note">
+                    {preset.width}×{preset.height}. Bigger frames cost bandwidth, not much CPU; the core still
+                    draws 384×288.
+                  </p>
+                </div>
+              )}
+
+              <button role="menuitem" aria-expanded={section === 'buttons'} onClick={expand('buttons')}>
+                <span>Face buttons</span>
+                <span className="value">{buttonCount}</span>
+              </button>
+              {section === 'buttons' && (
+                <div className="sub">
+                  <div className="seg">
+                    {BUTTON_COUNTS.map((count) => (
+                      <button
+                        key={count}
+                        className="chip"
+                        aria-pressed={count === buttonCount}
+                        onClick={() => applyButtons(count)}
+                        disabled={status !== 'running'}
+                      >
+                        {count}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="menu-note">
+                    Phones draw only these; keyboard and gamepad keep the full six.
+                  </p>
+                </div>
+              )}
+
+              <button role="menuitem" aria-expanded={section === 'saves'} onClick={expand('saves')}>
+                <span>Saves</span>
+                <span className="value">{saves.auto ? ago(saves.auto) : 'none'}</span>
+              </button>
+              {section === 'saves' && (
+                <div className="sub">
+                  <ul className="saves">
+                    <li>
+                      <span className="grow">Auto</span>
+                      <span className="muted small">{saves.auto ? ago(saves.auto) : '—'}</span>
+                      <button
+                        className="mini"
+                        disabled={status !== 'running' || !saves.auto}
+                        onClick={() => void loadSlot('auto')}
+                      >
+                        Load
+                      </button>
+                      <button
+                        className="mini"
+                        disabled={!saves.auto}
+                        onClick={() => void clearAuto()}
+                        title="Forget the auto-save and stop auto-saving this session, so the next launch starts fresh"
+                      >
+                        ×
+                      </button>
+                    </li>
+                    {(['1', '2', '3'] as const).map((slot) => (
+                      <li key={slot}>
+                        <span className="grow">Slot {slot}</span>
+                        <span className="muted small">{saves[slot] ? ago(saves[slot]) : 'empty'}</span>
+                        <button className="mini" disabled={status !== 'running'} onClick={() => void saveSlot(slot)}>
+                          Save
+                        </button>
+                        <button
+                          className="mini"
+                          disabled={status !== 'running' || !saves[slot]}
+                          onClick={() => void loadSlot(slot)}
+                        >
+                          Load
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {saveStatus && (
+                    <p className="menu-note" role="status">
+                      {saveStatus}
+                    </p>
+                  )}
+                  <p className="menu-note">
+                    Auto-saves every 45s and when the tab hides. States stay on this machine.
+                  </p>
+                </div>
+              )}
+
               {status === 'running' && (
                 <>
                   <span className="sep" role="separator" />
@@ -541,150 +713,18 @@ export function HostView() {
           />
         </section>
 
-        <aside>
-          <SlotPanel slots={slots} peers={peers} tick={tick} onAssign={assignInput} onClear={clearInput} />
-
-          <div className="panel">
-            <h2>Invite</h2>
-            <div className="row">
-              <button
-                className={inviteMode === 'play' ? 'primary' : 'ghost'}
-                aria-pressed={inviteMode === 'play'}
-                onClick={() => setInviteMode('play')}
-              >
-                Watch + play
-              </button>
-              <button
-                className={inviteMode === 'pad' ? 'primary' : 'ghost'}
-                aria-pressed={inviteMode === 'pad'}
-                onClick={() => setInviteMode('pad')}
-              >
-                Controller only
-              </button>
-            </div>
-            <div className="invite">
-              <code>{invite || 'starting signaling…'}</code>
-            </div>
-            <p className="muted small">
-              {inviteMode === 'pad'
-                ? 'No picture and no sound: a phone in the same room as you, driving one player while the cabinet screen stays the thing everyone watches. The host does not even encode frames for it.'
-                : 'Guests open this link on any device, no install. Host keeps the ROM and the emulator; only the AV stream is sent.'}
-            </p>
-          </div>
-
-          <div className="panel">
-            <h2>Session</h2>
-            <div className="row">
-              <span className="tag">{status}</span>
-              {status === 'running' && <span className="tag">{fps} fps</span>}
-            </div>
-            <p className="muted small">
-              <kbd>⇧F</kbd> fullscreen · <kbd>⇧W</kbd> widescreen. Widescreen stretches the core's 4:3 picture;
-              FBNeo has no 16:9 render mode.
-            </p>
-            {status === 'running' && fps > 0 && fps < 30 && (
-              <p className="warn">
-                Host is drawing {fps} fps. Keep this tab in front; browsers throttle a background tab.
-              </p>
-            )}
-          </div>
-
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Stream quality</h2>
-              <span className="count">{preset.width}×{preset.height}</span>
-            </div>
-            <div className="row">
-              {FRAME_PRESETS.map((option) => (
-                <button
-                  key={option.id}
-                  className={option.id === preset.id ? 'primary' : 'ghost'}
-                  aria-pressed={option.id === preset.id}
-                  onClick={() => applyPreset(option)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <p className="muted small">
-              Frames are sent as JPEGs, so bigger ones cost bandwidth but not much CPU. The core draws 384×288;
-              the wider presets only give the picture a finer grid and a softer stretch on a big screen.
-            </p>
-            <div className="panel-head">
-              <h2>Face buttons</h2>
-              <span className="count">this game</span>
-            </div>
-            <div className="row">
-              {BUTTON_COUNTS.map((count) => (
-                <button
-                  key={count}
-                  className={count === buttonCount ? 'primary' : 'ghost'}
-                  aria-pressed={count === buttonCount}
-                  onClick={() => applyButtons(count)}
-                  disabled={status !== 'running'}
-                >
-                  {count}
-                </button>
-              ))}
-            </div>
-            <p className="muted small">
-              RetroArch logs the core's input descriptors but does not expose them, so this is the host's call.
-              Phones draw only these buttons; keyboard and gamepad keep the full six.
-            </p>
-          </div>
-
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Saves</h2>
-              <span className="count">this machine</span>
-            </div>
-            <ul className="saves">
-              <li>
-                <span className="grow">Auto</span>
-                <span className="muted small">{saves.auto ? ago(saves.auto) : '—'}</span>
-                <button
-                  className="mini"
-                  disabled={status !== 'running' || !saves.auto}
-                  onClick={() => void loadSlot('auto')}
-                >
-                  Load
-                </button>
-                <button
-                  className="mini"
-                  disabled={!saves.auto}
-                  onClick={() => void clearAuto()}
-                  title="Forget the auto-save and stop auto-saving this session, so the next launch starts fresh"
-                >
-                  ×
-                </button>
-              </li>
-              {(['1', '2', '3'] as const).map((slot) => (
-                <li key={slot}>
-                  <span className="grow">Slot {slot}</span>
-                  <span className="muted small">{saves[slot] ? ago(saves[slot]) : 'empty'}</span>
-                  <button className="mini" disabled={status !== 'running'} onClick={() => void saveSlot(slot)}>
-                    Save
-                  </button>
-                  <button
-                    className="mini"
-                    disabled={status !== 'running' || !saves[slot]}
-                    onClick={() => void loadSlot(slot)}
-                  >
-                    Load
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {saveStatus && (
-              <p className="muted small" role="status">
-                {saveStatus}
-              </p>
-            )}
-            <p className="muted small">Auto-saves every 45s and when the tab hides. States stay on this machine.</p>
-          </div>
-        </aside>
+        <SlotPanel slots={slots} peers={peers} tick={tick} onClear={clearInput} onPhone={() => setPhoneQr(true)} />
       </main>
       {qrOpen && code && <QrDialog invite={invite} code={code} onClose={() => setQrOpen(false)} />}
+      {phoneQr && code && (
+        <QrDialog
+          invite={controllerInvite}
+          code={code}
+          title="Scan to play"
+          note="Opens a controller-only page on the phone: the pad, no picture, no sound."
+          onClose={() => setPhoneQr(false)}
+        />
+      )}
       {keysOpen && <KeyHelp onClose={() => setKeysOpen(false)} />}
       {castOpen && (
         <CastGuide

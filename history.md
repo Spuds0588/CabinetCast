@@ -2,6 +2,50 @@
 
 Newest first. Read this before re-deciding something; it records what was tried and rejected.
 
+## 2026-10-19 — The roster's button becomes a phone controller
+
+**`+ Player` was a chooser for paths that happen by themselves.** Gamepads take a port on connect, guests take
+one on join, and the keyboard is there from boot, so the only input left to add by hand was a phone. The pill
+now reads `+ Phone controller` and opens the controller-only QR (`?room=…&mode=pad`) on the screen, so someone
+next to the cabinet can scan it without opening the menu. Its dialog is `Scan to play` with a line saying
+what the phone becomes; the Invite menu's QR keeps `Scan to join` and follows the watch/controller toggle.
+
+**The chooser's keyboard path is replaced by a first-keypress claim.** Without a menu, clearing the P1 tag
+was a dead end. The host's next player-1 key press now puts the keyboard back on P1 when that port is free.
+The × on the keyboard tag stays, so P1 can still be handed to a pad or a phone.
+
+**A long invite URL widened the modal past a 390px screen.** The modal's `auto` grid track grew to the URL's
+min-content width, so the card ran off the right edge. `minmax(0, 1fr)` on the track plus a full-width card
+capped at 390px keeps it inside the viewport and lets the URL ellipsize.
+
+**Verified:** `npm run build` passes with `pipefail`. The button opens `Scan to play` encoding
+`?room=…&mode=pad`; that URL on a 390px viewport joined as P2, and the host showed a touch-icon
+`P2 Guest …` tag. With keyboard, phone and two stubbed pads the button disables with "All four ports are
+playing"; clearing P1 and pressing W put the keyboard back. The menu QR still uses watch mode and
+`Scan to join`, and the Invite toggle still switches the link. The card measures 20px margins at 390px.
+
+## 2026-10-19 — Everything but the players moves into the menu
+
+**The aside was the last big block of chrome.** The host is now the cabinet, a centered row of player tags
+under it, and a menu button. Invite (watch mode and link), Stream quality, Face buttons and Saves are menu
+rows that expand in place, so nothing is more than two clicks away and the screen stays clear. Session state
+moved to a line at the top of the menu: status, fps, ROM name, and the low-fps warning. The room code still
+appears only in the invite link and QR code.
+
+**The cabinet now sizes from the viewport height**, not from the width left over by a 330px sidebar, so it
+grows into the space the panels used to take. The 4:3 and 16:9 widths are `calc((100dvh - 168px) * ratio)`
+capped at 100%, which keeps the tags visible without a scroll on a laptop.
+
+**The roster is centered under the picture and `+ Player` rides at the end of it.** The tags stay one
+wrapped row; `+ Player` is now a dashed pill shaped like them instead of a heading button. Its chooser opens
+upward, because the roster is the last element on the page and a downward menu fell off the viewport.
+
+**Verified:** `npm run build` passes with `pipefail`. At 1280 and 390px the tags center under the cabinet;
+three stubbed pads auto-assigned to P2–P4 and wrapped to three centered lines with the right port colours and
+icons; disconnecting one freed its port and re-enabled `+ Player`. Every menu section expands in place and
+its controls still work; widescreen resizes the cabinet to 16:9 and stays centered. Menu and chooser both fit
+inside a 390px viewport.
+
 ## 2026-10-19 — The room code leaves the header
 
 **The code only matters when inviting.** The pill in the host and guest headers is gone, and the pad status

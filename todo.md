@@ -1,6 +1,16 @@
 # todo.md
 
 ## Done (MVP)
+- [x] `+ Player` replaced by `+ Phone controller`, which shows the controller-only join QR on the host screen;
+      the chooser is gone because gamepads and guests assign themselves, and a cleared keyboard claims P1 back
+      on the next key press (2026-10-19)
+- [x] QR modal fixed for narrow screens: `minmax(0, 1fr)` grid track and a 100%/390px card so a long invite
+      URL ellipsizes instead of pushing the card off the edge (2026-10-19)
+- [x] Everything but the players is a menu option: the aside panels became expanding menu sections (Invite,
+      Stream quality, Face buttons, Saves), session status sits at the top of the menu, and the cabinet sizes
+      from the viewport height (2026-10-19)
+- [x] Player tags centered under the cabinet with the add button as the last tag; the chooser opened upward
+      (2026-10-19, later replaced by `+ Phone controller`)
 - [x] Room code removed from the host and guest headers and the pad status line; the invite link and QR still
       carry it, so sharing is unchanged (2026-10-19)
 - [x] Players panel collapsed to one tag per player (port colour, icon, name, live dot, guest rate) with a

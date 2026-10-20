@@ -100,7 +100,10 @@ code { font-family: var(--mono); font-size: 0.92em; }
   top: calc(100% + 8px);
   right: 0;
   z-index: 40;
-  min-width: 224px;
+  min-width: 248px;
+  max-height: min(72vh, 660px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -143,6 +146,85 @@ code { font-family: var(--mono); font-size: 0.92em; }
 .options button:disabled { opacity: 0.4; cursor: default; }
 .options .stop { color: var(--red); }
 .options .sep { height: 1px; margin: 4px 2px; background: var(--line); }
+
+/* The menu is the whole settings surface, so it carries a status line and in-place sections. */
+.menu-state {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 2px 4px 4px;
+  padding: 0 6px 7px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.menu-state b {
+  margin-left: auto;
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #6e6e88;
+}
+
+.menu-note { margin: 0 4px; font-size: 11px; line-height: 1.45; color: var(--muted); }
+
+.options .value { flex: none; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+.options .sub { display: flex; flex-direction: column; gap: 8px; padding: 2px 4px 8px 12px; }
+.options .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.options .chip {
+  flex: 1 1 auto;
+  width: auto;
+  justify-content: center;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #0d0d15;
+  font-size: 12px;
+  text-align: center;
+}
+.options .chip::before { content: none; }
+.options .chip:hover:not(:disabled) { border-color: #3b3b52; background: #171722; }
+.options .chip[aria-pressed='true'] { border-color: var(--yellow); color: var(--yellow); }
+
+.sub-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0b0b12;
+  font-size: 10px;
+  color: #b9b6cc;
+}
+
+/* Save slots inside the menu: two mini buttons per row, not full-width menu rows. */
+.options .sub .saves { gap: 4px; }
+.options .sub .saves li { gap: 6px; font-size: 12px; }
+.options .sub .saves li .small { font-size: 10px; }
+.options .sub .saves .mini {
+  width: auto;
+  flex: none;
+  gap: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 10px;
+  text-align: center;
+}
+.options .sub .saves .mini::before { content: none; }
+.options .sub .saves .mini:hover:not(:disabled) { border-color: #3b3b52; background: #171722; }
 
 kbd {
   font-family: var(--mono);
@@ -188,23 +270,19 @@ button.primary:hover:not(:disabled) { background: #ffe066; border-color: #ffe066
 
 button.ghost { background: transparent; }
 
-/* Host layout */
+/* Host layout: the cabinet and its roster, nothing else. */
 .host {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 18px;
-  align-items: start;
-}
-
-.host aside {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Cabinet screen */
 .cabinet {
   position: relative;
+  /* Fit the viewport, not just the width: the roster and the menu row need their share too. */
+  width: min(100%, calc((100dvh - 168px) * 4 / 3));
   aspect-ratio: 4 / 3;
   border-radius: 14px;
   overflow: hidden;
@@ -214,7 +292,10 @@ button.ghost { background: transparent; }
 }
 
 /* Widescreen is a display stretch: FBNeo has no 16:9 render mode, so the 4:3 frame fills a wider box. */
-.cabinet.wide { aspect-ratio: 16 / 9; }
+.cabinet.wide {
+  width: min(100%, calc((100dvh - 168px) * 16 / 9));
+  aspect-ratio: 16 / 9;
+}
 .cabinet:fullscreen { border: 0; border-radius: 0; }
 
 /* RetroArch renames the canvas to id="canvas" and sizes its buffer from the canvas' CSS size, so we
@@ -303,52 +384,16 @@ button.ghost { background: transparent; }
 }
 
 .error { color: var(--red) !important; font-size: 13px; }
-.warn { color: var(--yellow); font-size: 12px; margin: 8px 0 0; }
-
-/* Panels */
-.panel {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: linear-gradient(180deg, var(--panel-2), var(--panel));
-  padding: 14px 14px 16px;
-}
-
-.panel h2 {
-  margin: 0 0 10px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 600;
-}
 
 .panel-head { display: flex; align-items: baseline; justify-content: space-between; }
-
-/* A different arcade button colour tags each panel heading. */
-.host aside > .panel:nth-child(1) { --dot: var(--red); }
-.host aside > .panel:nth-child(2) { --dot: var(--blue); }
-.host aside > .panel:nth-child(3) { --dot: var(--green); }
-.host aside > .panel:nth-child(4) { --dot: var(--yellow); }
-.host aside > .panel:nth-child(5) { --dot: var(--pink); }
-.host aside > .panel:nth-child(6) { --dot: var(--cyan); }
-.host aside .panel-head h2::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 8px;
-  border-radius: 2px;
-  background: var(--dot, var(--yellow));
-  vertical-align: 1px;
-}
-.count { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 
 .muted { color: var(--muted); }
 .small { font-size: 12px; line-height: 1.45; margin: 8px 0 0; }
 
-/* Player tags: one pill per player, port colour and a dot that lights while they press. */
-.player-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Player tags: one pill per player, port colour and a dot that lights while they press. The row sits
+   centered under the cabinet and is the only host chrome outside the menu. */
+.roster { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; }
+.player-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 
 .player-tag {
   --port: var(--muted);
@@ -410,28 +455,22 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 .mini { padding: 3px 8px; border-radius: 6px; font-size: 11px; line-height: 1.4; }
 
-/* Manual add: rare, so it sits in the heading and only offers free inputs. */
-.add-input { position: relative; margin-left: 8px; align-self: center; }
-.player-add { padding: 3px 9px; border-style: dashed; border-radius: 999px; background: transparent; color: var(--muted); font-size: 11px; }
-.player-add:hover:not(:disabled) { border-color: var(--yellow); color: var(--yellow); }
-
-.input-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 5;
-  min-width: 210px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-2);
-  box-shadow: 0 16px 40px -12px #000;
+/* Manual add: rare, so it is a tag on the end of the row and shows the phone-controller QR. */
+.player-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px 4px 9px;
+  border-style: dashed;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
 }
-.input-menu button { width: 100%; padding: 7px 10px; text-align: left; font-size: 13px; }
-.input-menu .small { margin: 4px 6px; }
+.player-add .input-icon { color: inherit; }
+.player-add:hover:not(:disabled) { border-color: var(--yellow); color: var(--yellow); }
 
 /* Save slots */
 .saves { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -466,22 +505,6 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 .tag .input-icon { color: currentColor; }
 
-/* Invite */
-.invite { display: flex; gap: 8px; align-items: center; }
-.invite code {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 8px 10px;
-  border-radius: 7px;
-  background: #0b0b12;
-  border: 1px solid var(--line);
-  font-size: 11px;
-  color: #b9b6cc;
-}
-
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* QR dialog */
@@ -490,6 +513,8 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
   inset: 0;
   z-index: 50;
   display: grid;
+  /* minmax(0, 1fr), not an auto track: a long invite URL would otherwise widen the card past the screen. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 20px;
   background: rgba(4, 4, 8, 0.78);
@@ -497,7 +522,8 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 }
 
 .qr-card {
-  width: min(390px, 100%);
+  width: 100%;
+  max-width: 390px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -514,6 +540,7 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 .qr-card img { width: min(320px, 100%); height: auto; padding: 10px; border-radius: 10px; background: #fff; }
 .qr-url { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
 .qr-card .row { justify-content: center; }
+.qr-note { margin: 0; max-width: 300px; text-align: center; color: var(--muted); }
 
 /* Keyboard help: one card, player 1's map, read straight off KEY_BITS. */
 .keys-card {
@@ -971,7 +998,6 @@ button.icon:hover:not(:disabled) { background: transparent; color: var(--text); 
 
 @media (max-width: 900px) {
   .app { padding: 14px 14px 22px; }
-  .host { grid-template-columns: minmax(0, 1fr); }
   .gate h1 { font-size: 21px; }
 }
 
